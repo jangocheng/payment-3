@@ -34,12 +34,12 @@ type WXKeyConfig struct {
 }
 
 var (
-	WX_PAY_CONFIG     *WXKeyConfig = &WXKeyConfig{}
-	WX_PAY_NOTIFY_URL              = "http://pay_notify_url.com"
+	WX_PAY_CONFIG     WXKeyConfig = WXKeyConfig{}
+	WX_PAY_NOTIFY_URL             = "http://pay_notify_url.com"
 )
 
-func InitWXKey() {
-
+func InitWXKey(conf WXKeyConfig) {
+	WX_PAY_CONFIG = conf
 }
 
 func WXSign(v interface{}) string {

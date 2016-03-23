@@ -11,11 +11,12 @@ type WXPaySuite struct {
 var _ = Suite(&WXPaySuite{})
 
 func (this *WXPaySuite) SetUpSuite(c *C) {
-	WX_PAY_CONFIG.APP_ID = ""
-	WX_PAY_CONFIG.APP_SECRET = ""
-	WX_PAY_CONFIG.MCH_ID = ""
-	WX_PAY_CONFIG.MCH_KEY = ""
-	InitWXKey()
+	conf := WXKeyConfig{}
+	conf.APP_ID = "wx21b3ee9bd6d16364"
+	conf.APP_SECRET = "d7eeecfd00f3190f06d4b693608a7432"
+	conf.MCH_ID = "1230573602"
+	conf.MCH_KEY = "kSwERhR8QtQxt09mS0JZu3ePiBtRE0Jf"
+	InitWXKey(conf)
 }
 
 func (this *WXPaySuite) TearDownSuite(c *C) {

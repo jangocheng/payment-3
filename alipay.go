@@ -27,12 +27,13 @@ type APKeyConfig struct {
 }
 
 var (
-	AP_PAY_CONFIG       *APKeyConfig    = &APKeyConfig{}
+	AP_PAY_CONFIG       APKeyConfig     = APKeyConfig{}
 	PARTNET_PRIVATE_KEY *rsa.PrivateKey = nil
 	ALIPAY_PUBLIC_KEY   *rsa.PublicKey  = nil
 )
 
-func InitAPKey() {
+func InitAPKey(conf APKeyConfig) {
+	AP_PAY_CONFIG = conf
 	//加载商户私钥
 	if block, _ := pem.Decode([]byte(AP_PAY_CONFIG.PARTNET_PRIVATE_KEY)); block != nil {
 		if key, err := x509.ParsePKCS1PrivateKey(block.Bytes); err != nil {
