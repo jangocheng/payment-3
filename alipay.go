@@ -6,13 +6,16 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
-	// "encoding/json"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"github.com/cxuhua/xweb"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -91,6 +94,8 @@ func APParseSignFields(src interface{}) xweb.HTTPValues {
 			name = strings.Split(xn, ",")[0]
 		} else if xn = tf.Tag.Get("json"); xn != "" {
 			name = strings.Split(xn, ",")[0]
+		} else if xn = tf.Tag.Get("form"); xn != "" {
+			name = strings.Split(xn, ",")[0]
 		} else {
 			continue
 		}
@@ -100,27 +105,38 @@ func APParseSignFields(src interface{}) xweb.HTTPValues {
 }
 
 //校验来自阿里的数据
-func ALRSAVerify(src string, sign string) (pass bool, err error) {
-	digest := xweb.SHA1String(src)
-	data, _ := base64.StdEncoding.DecodeString(sign)
-	err = rsa.VerifyPKCS1v15(ALIPAY_PUBLIC_KEY, crypto.SHA1, []byte(digest), []byte(data))
+func APRSAVerify(src string, sign string) (bool, error) {
+	h := crypto.SHA1.New()
+	h.Write([]byte(src))
+	hashed := h.Sum(nil)
+	data, err := base64.StdEncoding.DecodeString(sign)
+	if err != nil {
+		return false, err
+	}
+	err = rsa.VerifyPKCS1v15(ALIPAY_PUBLIC_KEY, crypto.SHA1, hashed, data)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-/*
-TradeStatus
-WAIT_BUYER_PAY	交易创建，等待买家付款。
-TRADE_CLOSED	在指定时间段内未支付时关闭的交易；在交易完成全额退款成功时关闭的交易。
-TRADE_SUCCESS	交易成功，且可对该交易做操作，如：多级分润、退款等。
-TRADE_FINISHED	交易成功且结束，即不可再做任何操作。
-*/
+const (
+	//如果异步订单处理成功返回
+	DO_SUCCESS = "success"
+)
+
+//TradeStatus
+const (
+	WAIT_BUYER_PAY = "WAIT_BUYER_PAY"
+	TRADE_CLOSED   = "TRADE_CLOSED"
+	TRADE_SUCCESS  = "TRADE_SUCCESS"
+	TRADE_FINISHED = "TRADE_FINISHED"
+	REFUND_SUCCESS = "REFUND_SUCCESS"
+	REFUND_CLOSED  = "REFUND_CLOSED"
+)
 
 //支付宝服务器异步通知参数说明
 type APPayResultNotifyArgs struct {
-	xweb.FORMArgs
 	NotifyTime   string `form:"notify_time" sign:"true"`
 	NotifyType   string `form:"notify_type" sign:"true"`
 	NotifyId     string `form:"notify_id" sign:"true"`
@@ -146,6 +162,63 @@ type APPayResultNotifyArgs struct {
 	Discount     string `form:"discount" sign:"true"`
 	RefundStatus string `form:"refund_status" sign:"true"`
 	GMTRefund    string `form:"gmt_refund" sign:"true"`
+	GMTClose     string `form:"gmt_close" sign:"true"`
+}
+
+func (this APPayResultNotifyArgs) GetTotalFee() float32 {
+	v, err := strconv.ParseFloat(this.TotalFee, 64)
+	if err != nil {
+		panic(err)
+	}
+	return float32(v)
+}
+
+//是否来自支付宝
+func (this APPayResultNotifyArgs) IsFromAlipay() bool {
+	q := xweb.NewHTTPValues()
+	q.Set("service", "notify_verify")
+	q.Set("partner", AP_PAY_CONFIG.PARTNER_ID)
+	q.Set("notify_id", this.NotifyId)
+	http := xweb.NewHTTPClient("https://mapi.alipay.com")
+	d, err := http.Get("/gateway.do", q)
+	if err != nil {
+		return false
+	}
+	return string(d) == "true"
+}
+
+//签名校验
+func (this APPayResultNotifyArgs) IsValid() bool {
+	v := APParseSignFields(this)
+	s := v.RawEncode()
+	if ret, err := APRSAVerify(s, this.Sign); err != nil {
+		return false
+	} else {
+		return ret
+	}
+}
+
+func (this APPayResultNotifyArgs) String() string {
+	d, err := json.Marshal(this)
+	if err != nil {
+		return err.Error()
+	}
+	return string(d)
+}
+
+func NewAPPayResultNotifyArgs(req *http.Request) (APPayResultNotifyArgs, error) {
+	args := APPayResultNotifyArgs{}
+	data, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return args, err
+	}
+	form, err := url.ParseQuery(string(data))
+	if err != nil {
+		return args, err
+	}
+	value := reflect.ValueOf(&args)
+	xweb.MapFormValue(value, form, nil)
+	return args, nil
 }
 
 //阿里支付请求参数
