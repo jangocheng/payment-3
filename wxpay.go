@@ -393,31 +393,16 @@ type WXPayReqForApp struct {
 	PrepayId  string `json:"prepayid,omitempty" sign:"true"` //统一下单返回
 	Package   string `json:"package,omitempty" sign:"true"`  //APP支付固定(Sign=WXPay)
 	NonceStr  string `json:"noncestr,omitempty" sign:"true"`
-	Timestamp string `json:"timestamp,omitempty" sign:"true"`
+	Timestamp int64  `json:"timestamp,omitempty" sign:"true"`
 	Sign      string `json:"sign,omitempty" sign:"false"`
 }
 
 func (this WXPayReqForApp) String() string {
-	values := xweb.NewHTTPValues()
-	t := reflect.TypeOf(this)
-	v := reflect.ValueOf(this)
-	for i := 0; i < t.NumField(); i++ {
-		tf := t.Field(i)
-		tv := v.Field(i)
-		if !tv.IsValid() {
-			continue
-		}
-		jt := strings.Split(tf.Tag.Get("json"), ",")
-		if len(jt) == 0 || jt[0] == "" {
-			continue
-		}
-		sv := fmt.Sprintf(`%v`, tv.Interface())
-		if sv == "" {
-			continue
-		}
-		values.Add(jt[0], sv)
+	data, err := json.Marshal(this)
+	if err != nil {
+		return err.Error()
 	}
-	return values.RawEncode()
+	return string(data)
 }
 
 //新建APP支付返回
@@ -428,7 +413,7 @@ func NewWXPayReqForApp(prepayid string) WXPayReqForApp {
 	d.PartnerId = WX_PAY_CONFIG.MCH_ID
 	d.Package = "Sign=WXPay"
 	d.NonceStr = RandStr()
-	d.Timestamp = TimeString(0)
+	d.Timestamp = TimeNow()
 	d.Sign = WXSign(d)
 	return d
 }
