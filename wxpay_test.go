@@ -15,7 +15,7 @@ func (this *WXPaySuite) SetUpSuite(c *C) {
 	conf.APP_ID = "wx21b3ee9bd6d16364"
 	conf.APP_SECRET = "d7eeecfd00f3190f06d4b693608a7432"
 	conf.MCH_ID = "1230573602"
-	conf.MCH_KEY = "kSwERhR8QtQxt09mS0JZu3ePiBtRE0Jf"
+	conf.MCH_KEY = "36507e7df83200a1850752db0a208a91"
 	InitWXKey(conf)
 }
 
@@ -26,7 +26,7 @@ func (this *WXPaySuite) TearDownSuite(c *C) {
 func (this *WXPaySuite) TestWXOAuth2Authorize(c *C) {
 	a := WXOAuth2Authorize{}
 	a.State = "state1"
-	a.RedirectURI = "http://wx.rockygame.cn/callback"
+	a.RedirectURI = "http://www.pzhnf.com/userinfo/pay"
 	log.Println(a.ToURL())
 }
 
