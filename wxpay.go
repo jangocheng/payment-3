@@ -291,6 +291,111 @@ func AuthGet(token, openid string) WXError {
 	return ret
 }
 
+/*
+<xml>
+<return_code><![CDATA[SUCCESS]]></return_code>
+<return_msg><![CDATA[OK]]></return_msg>
+<appid><![CDATA[wx51af527d53ba9bf6]]></appid>
+<mch_id><![CDATA[1325392101]]></mch_id>
+<nonce_str><![CDATA[F8TArcf4dohErOyy]]></nonce_str>
+<sign><![CDATA[CDB27083D185045DC23B1BFCAA31246D]]></sign>
+<result_code><![CDATA[SUCCESS]]></result_code>
+<openid><![CDATA[oGb4DwVuq88sFUrDKgSQ39O85U0E]]></openid>
+<is_subscribe><![CDATA[N]]></is_subscribe>
+<trade_type><![CDATA[APP]]></trade_type>
+<bank_type><![CDATA[CCB_DEBIT]]></bank_type>
+<total_fee>1</total_fee>
+<fee_type><![CDATA[CNY]]></fee_type>
+<transaction_id><![CDATA[4000402001201604124780687785]]></transaction_id>
+<out_trade_no><![CDATA[2201604122135130001]]></out_trade_no>
+<attach><![CDATA[]]></attach>
+<time_end><![CDATA[20160412213526]]></time_end>
+<trade_state><![CDATA[SUCCESS]]></trade_state>
+<cash_fee>1</cash_fee>
+</xml>
+*/
+
+type WXPayQueryOrderResponse struct {
+	XMLName       struct{} `xml:"xml"`
+	ReturnCode    string   `xml:"return_code" sign:"true"`
+	ReturnMsg     string   `xml:"return_msg" sign:"true"`
+	AppId         string   `xml:"appid" sign:"true"`
+	MchId         string   `xml:"mch_id" sign:"true"`
+	NonceStr      string   `xml:"nonce_str" sign:"true"`
+	Sign          string   `xml:"sign" sign:"false"`
+	ResultCode    string   `xml:"result_code" sign:"true"`
+	ErrCode       string   `xml:"err_code" sign:"true"`
+	ErrCodeDes    string   `xml:"err_code_des" sign:"true"`
+	OpenId        string   `xml:"openid" sign:"true"`
+	IsSubScribe   string   `xml:"is_subscribe" sign:"true"`
+	TradeType     string   `xml:"trade_type" sign:"true"`
+	BankType      string   `xml:"bank_type" sign:"true"`
+	TotalFee      string   `xml:"total_fee" sign:"true"`
+	FeeType       string   `xml:"fee_type" sign:"true"`
+	TransactionId string   `xml:"transaction_id" sign:"true"`
+	OutTradeNo    string   `xml:"out_trade_no" sign:"true"`
+	Attach        string   `xml:"attach" sign:"true"`
+	TimeEnd       string   `xml:"time_end" sign:"true"`
+	TradeState    string   `xml:"trade_state" sign:"true"`
+	CashFee       string   `xml:"cash_fee" sign:"true"`
+}
+
+func (this WXPayQueryOrderResponse) SignValid() bool {
+	sign := WXSign(this)
+	return sign == this.Sign
+}
+
+//2201604122135130001
+//https://api.mch.weixin.qq.com/pay/orderquery
+type WXPayQueryOrder struct {
+	XMLName    struct{} `xml:"xml"`
+	AppId      string   `xml:"appid" sign:"true"`
+	MchId      string   `xml:"mch_id" sign:"true"`
+	OutTradeNo string   `xml:"out_trade_no" sign:"true"`
+	NonceStr   string   `xml:"nonce_str" sign:"true"`
+	Sign       string   `xml:"sign" sign:"false"` //sign=false表示不参与签名
+}
+
+func (this WXPayQueryOrder) ToXML() string {
+	data, err := xml.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+func (this WXPayQueryOrder) Post() (WXPayQueryOrderResponse, error) {
+	ret := WXPayQueryOrderResponse{}
+	this.NonceStr = RandStr()
+	this.AppId = WX_PAY_CONFIG.APP_ID
+	this.MchId = WX_PAY_CONFIG.MCH_ID
+	if this.AppId == "" {
+		panic(errors.New("AppId miss"))
+	}
+	if this.MchId == "" {
+		panic(errors.New("MchId miss"))
+	}
+	this.Sign = WXSign(this)
+	http := xweb.NewHTTPClient(WX_PAY_HOST)
+	data, err := http.Post("/pay/orderquery", "application/xml", strings.NewReader(this.ToXML()))
+	if err != nil {
+		return ret, err
+	}
+	if err := xml.Unmarshal(data, &ret); err != nil {
+		return ret, err
+	}
+	if !ret.SignValid() {
+		return ret, errors.New("sign error")
+	}
+	if ret.ReturnCode != SUCCESS {
+		return ret, errors.New(ret.ReturnMsg)
+	}
+	if ret.ResultCode != SUCCESS {
+		return ret, errors.New(ret.ErrCode + ":" + ret.ErrCodeDes)
+	}
+	return ret, nil
+}
+
 //支付结果通用通知
 //微信服务器将会根据统一下单的NotifyURL POST以下数据到商机服务器处理
 type WXPayResultNotifyArgs struct {
@@ -500,9 +605,6 @@ func (this WXUnifiedorderRequest) Post() (WXUnifiedorderResponse, error) {
 	}
 	if this.TradeType == TRADE_TYPE_NATIVE && this.ProductId == "" {
 		panic(errors.New(TRADE_TYPE_NATIVE + " product_id empty"))
-	}
-	if WX_PAY_CONFIG.MCH_KEY == "" {
-		panic(errors.New("MchKey miss"))
 	}
 	this.Sign = WXSign(this)
 	http := xweb.NewHTTPClient(WX_PAY_HOST)
