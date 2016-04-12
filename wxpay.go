@@ -352,9 +352,10 @@ func (this WXPayResultNotifyArgs) IsError() error {
 
 //商户处理后返回格式
 type WXPayResultResponse struct {
-	XMLName    struct{} `xml:"xml"`                   //root node name
-	ReturnCode string   `xml:"return_code,omitempty"` //SUCCESS or FAIL
-	ReturnMsg  string   `xml:"return_msg,omitempty"`  //OK
+	xweb.XMLModel `xml:"-"`
+	XMLName       struct{} `xml:"xml"`                   //root node name
+	ReturnCode    string   `xml:"return_code,omitempty"` //SUCCESS or FAIL
+	ReturnMsg     string   `xml:"return_msg,omitempty"`  //OK
 }
 
 func (this WXPayResultResponse) ToXML() string {
