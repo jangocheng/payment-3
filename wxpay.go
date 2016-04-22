@@ -87,8 +87,10 @@ const (
 
 //返回字符串
 const (
-	SUCCESS = "SUCCESS"
-	FAIL    = "FAIL"
+	SUCCESS    = "SUCCESS"
+	FAIL       = "FAIL"
+	NOTPAY     = "NOTPAY"
+	USERPAYING = "USERPAYING"
 )
 
 //主机地址
@@ -315,29 +317,44 @@ func AuthGet(token, openid string) WXError {
 </xml>
 */
 
+/*
+<xml><return_code><![CDATA[SUCCESS]]></return_code>
+<return_msg><![CDATA[OK]]></return_msg>
+<appid><![CDATA[wx51af527d53ba9bf6]]></appid>
+<mch_id><![CDATA[1325392101]]></mch_id>
+<nonce_str><![CDATA[wKZwPiqMmMXsVouc]]></nonce_str>
+<sign><![CDATA[C4E7D7BA7FBD0495CB8F11903DF62B5B]]></sign>
+<result_code><![CDATA[SUCCESS]]></result_code>
+<out_trade_no><![CDATA[1201604221428370001]]></out_trade_no>
+<trade_state><![CDATA[NOTPAY]]></trade_state>
+<trade_state_desc><![CDATA[订单未支付]]></trade_state_desc>
+</xml>
+*/
+
 type WXPayQueryOrderResponse struct {
-	XMLName       struct{} `xml:"xml"`
-	ReturnCode    string   `xml:"return_code" sign:"true"`
-	ReturnMsg     string   `xml:"return_msg" sign:"true"`
-	AppId         string   `xml:"appid" sign:"true"`
-	MchId         string   `xml:"mch_id" sign:"true"`
-	NonceStr      string   `xml:"nonce_str" sign:"true"`
-	Sign          string   `xml:"sign" sign:"false"`
-	ResultCode    string   `xml:"result_code" sign:"true"`
-	ErrCode       string   `xml:"err_code" sign:"true"`
-	ErrCodeDes    string   `xml:"err_code_des" sign:"true"`
-	OpenId        string   `xml:"openid" sign:"true"`
-	IsSubScribe   string   `xml:"is_subscribe" sign:"true"`
-	TradeType     string   `xml:"trade_type" sign:"true"`
-	BankType      string   `xml:"bank_type" sign:"true"`
-	TotalFee      string   `xml:"total_fee" sign:"true"`
-	FeeType       string   `xml:"fee_type" sign:"true"`
-	TransactionId string   `xml:"transaction_id" sign:"true"`
-	OutTradeNo    string   `xml:"out_trade_no" sign:"true"`
-	Attach        string   `xml:"attach" sign:"true"`
-	TimeEnd       string   `xml:"time_end" sign:"true"`
-	TradeState    string   `xml:"trade_state" sign:"true"`
-	CashFee       string   `xml:"cash_fee" sign:"true"`
+	XMLName        struct{} `xml:"xml"`
+	ReturnCode     string   `xml:"return_code" sign:"true"`
+	ReturnMsg      string   `xml:"return_msg" sign:"true"`
+	AppId          string   `xml:"appid" sign:"true"`
+	MchId          string   `xml:"mch_id" sign:"true"`
+	NonceStr       string   `xml:"nonce_str" sign:"true"`
+	Sign           string   `xml:"sign" sign:"false"`
+	ResultCode     string   `xml:"result_code" sign:"true"`
+	ErrCode        string   `xml:"err_code" sign:"true"`
+	ErrCodeDes     string   `xml:"err_code_des" sign:"true"`
+	OpenId         string   `xml:"openid" sign:"true"`
+	IsSubScribe    string   `xml:"is_subscribe" sign:"true"`
+	TradeType      string   `xml:"trade_type" sign:"true"`
+	BankType       string   `xml:"bank_type" sign:"true"`
+	TotalFee       string   `xml:"total_fee" sign:"true"`
+	FeeType        string   `xml:"fee_type" sign:"true"`
+	TransactionId  string   `xml:"transaction_id" sign:"true"`
+	OutTradeNo     string   `xml:"out_trade_no" sign:"true"`
+	Attach         string   `xml:"attach" sign:"true"`
+	TimeEnd        string   `xml:"time_end" sign:"true"`
+	TradeState     string   `xml:"trade_state" sign:"true"`
+	TradeStateDesc string   `xml:"trade_state_desc" sign:"true"`
+	CashFee        string   `xml:"cash_fee" sign:"true"`
 }
 
 func (this WXPayQueryOrderResponse) SignValid() bool {
