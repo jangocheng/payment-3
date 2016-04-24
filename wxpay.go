@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cxuhua/xweb"
+	"log"
 	"reflect"
 	"strings"
 )
@@ -141,6 +142,7 @@ func WXGetJSApiTicket(token string) (WXGetJSApiTicketResponse, error) {
 	if err != nil {
 		return ret, err
 	}
+	log.Println(string(data))
 	if err := json.Unmarshal(data, &ret); err != nil {
 		return ret, err
 	}
