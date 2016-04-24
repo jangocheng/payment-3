@@ -119,6 +119,33 @@ func (this WXError) Error() error {
 	return errors.New(fmt.Sprintf("ERROR:%d,%s", this.ErrCode, this.ErrMsg))
 }
 
+type WXGetAccessTokenResponse struct {
+	WXError
+	AccessToken string `json:"access_token"`
+	Expires     int    `json:"expires_in"`
+}
+
+//https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=$this->appId&secret=$this->appSecret"
+func WXGetAccessToken() (WXGetAccessTokenResponse, error) {
+	ret := WXGetAccessTokenResponse{}
+	q := xweb.NewHTTPValues()
+	q.Set("grant_type", "client_credential")
+	q.Set("appid", WX_PAY_CONFIG.APP_ID)
+	q.Set("secret", WX_PAY_CONFIG.APP_SECRET)
+	c := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	data, err := c.Get("/cgi-bin/token", q)
+	if err != nil {
+		return ret, err
+	}
+	if err := json.Unmarshal(data, &ret); err != nil {
+		return ret, err
+	}
+	if err := ret.Error(); err != nil {
+		return ret, err
+	}
+	return ret, err
+}
+
 //获取 jsapi_ticket 票据接口
 //https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=ACCESS_TOKEN&type=jsapi
 type WXGetJSApiTicketResponse struct {
