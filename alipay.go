@@ -12,11 +12,13 @@ import (
 	"fmt"
 	"github.com/cxuhua/xweb"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //alipay
@@ -134,6 +136,41 @@ const (
 	REFUND_SUCCESS = "REFUND_SUCCESS"
 	REFUND_CLOSED  = "REFUND_CLOSED"
 )
+
+type APPayQueryOrder struct {
+	AppId      string `json:"app_id" sigin:"true"`       //支付宝分配给开发者的应用Id	2014072300007148
+	Method     string `json:"method" sigin:"true"`       //接口名称	alipay.trade.query
+	Charset    string `json:"charset" sigin:"true"`      //请求使用的编码格式，如utf-8,gbk,gb2312等	utf-8
+	SignType   string `json:"sign_type" sigin:"true"`    //商户生成签名字符串所使用的签名算法类型，目前支持RSA	RSA
+	Sign       string `json:"sign" sigin:"false"`        //商户请求参数的签名串，详见签名	详见示例
+	Timestamp  string `json:"timestamp" sigin:"true"`    //发送请求的时间，格式"yyyy-MM-dd HH:mm:ss"	2014-07-24 03:07:50
+	Version    string `json:"version" sigin:"true"`      //调用的接口版本，固定为：1.0	1.0
+	OutTradeNo string `json:"out_trade_no" sigin:"true"` //订单号
+}
+
+func (this APPayQueryOrder) ToJSON() string {
+	data, err := json.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+func (this APPayQueryOrder) Post() {
+	this.AppId = AP_PAY_CONFIG.PARTNER_ID
+	this.Method = "alipay.trade.query"
+	this.Charset = "utf-8"
+	this.SignType = AP_PAY_CONFIG.SIGN_TYPE
+	this.Timestamp = time.Now().Format("2006-01-02 15:04:05")
+	this.Version = "1.0"
+	this.OutTradeNo = "293894738473847"
+	this.Sign = APSign(this)
+	http := xweb.NewHTTPClient("https://mapi.alipay.com")
+	data, err := http.Post("/gateway.do", "application/json", strings.NewReader(this.ToJSON()))
+	log.Println(string(data), err)
+}
+
+// this.Sign = url.QueryEscape(APSign(this))
 
 //支付宝服务器异步通知参数说明
 type APPayResultNotifyArgs struct {

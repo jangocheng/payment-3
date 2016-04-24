@@ -116,6 +116,34 @@ func (this WXError) Error() error {
 	return errors.New(fmt.Sprintf("ERROR:%d,%s", this.ErrCode, this.ErrMsg))
 }
 
+//获取 jsapi_ticket 票据接口
+//https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=ACCESS_TOKEN&type=jsapi
+type WXGetJSApiTicketResponse struct {
+	ErrCode int    `json:"errcode"`
+	ErrMsg  string `json:"errmsg"`
+	Ticket  string `json:"ticket"`
+	ExpTime int    `json:"expires_in"`
+}
+
+func WXGetJSApiTicket(token string) (WXGetJSApiTicketResponse, error) {
+	ret := WXGetJSApiTicketResponse{}
+	if token == "" {
+		return ret, errors.New("token miss")
+	}
+	q := xweb.NewHTTPValues()
+	q.Set("access_token", token)
+	q.Set("type", "jsapi")
+	c := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	data, err := c.Get("/cgi-bin/ticket/getticket", q)
+	if err != nil {
+		return ret, err
+	}
+	if err := json.Unmarshal(data, &ret); err != nil {
+		return ret, err
+	}
+	return ret, err
+}
+
 //https://open.weixin.qq.com/connect/oauth2/authorize
 //授权成功后将跳转至:redirect_uri?code=v&state=v,通过query获得到code和state
 type WXOAuth2Authorize struct {

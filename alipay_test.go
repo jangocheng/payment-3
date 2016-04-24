@@ -50,6 +50,11 @@ func (this *APPaySuite) TearDownSuite(c *C) {
 
 }
 
+func (this *APPaySuite) TestQuery(c *C) {
+	q := APPayQueryOrder{}
+	q.Post()
+}
+
 func (this *APPaySuite) TestValid(c *C) {
 	log.Printf("%0.2f", 0.009999999776482582)
 	j := `{"NotifyTime":"2016-03-24 17:40:07","NotifyType":"trade_status_sync","NotifyId":"b0b55aa366562ded418e27274241493k8u","SignType":"RSA","Sign":"XW4MuVccJicaaSREj/pByvlkNOdHjgGCl+S83yVrSczL2wWIYf6IeJB6L0k2xq/bUNKl+AJFkjEMHASaBkG71zjVvksp0WWxlcDjIkc/otA+ZKLtgv4hDHe20+Y6q8amU9vz1HrpWzyfXMt/s9fe8744r+52Ne9pKuvkQGM3Pbg=","OutTradeNO":"201603241725160001","Subject":"test","PaymentType":"1","TradeNO":"2016032421001004550262574276","TradeStatus":"TRADE_SUCCESS","SellerId":"2088121797205248","SellerEmail":"57730141@qq.com","BuyerId":"2088002003565555","BuyerEmail":"cxuhua@gmail.com","TotalFee":"0.01","Quantity":"1","Price":"0.01","Body":"测试","GMTCreate":"2016-03-24 17:26:17","GMTPayment":"2016-03-24 17:26:18","FeeAdjust":"N","UseCoupon":"N","Discount":"0.00","RefundStatus":"","GMTRefund":""}`
