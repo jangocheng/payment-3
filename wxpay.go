@@ -113,6 +113,9 @@ type WXError struct {
 }
 
 func (this WXError) Error() error {
+	if this.ErrCode == 0 {
+		return nil
+	}
 	return errors.New(fmt.Sprintf("ERROR:%d,%s", this.ErrCode, this.ErrMsg))
 }
 
