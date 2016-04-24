@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cxuhua/xweb"
-	"log"
 	"reflect"
 	"strings"
 )
@@ -123,8 +122,7 @@ func (this WXError) Error() error {
 //获取 jsapi_ticket 票据接口
 //https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=ACCESS_TOKEN&type=jsapi
 type WXGetJSApiTicketResponse struct {
-	ErrCode int    `json:"errcode"`
-	ErrMsg  string `json:"errmsg"`
+	WXError
 	Ticket  string `json:"ticket"`
 	ExpTime int    `json:"expires_in"`
 }
@@ -142,8 +140,10 @@ func WXGetJSApiTicket(token string) (WXGetJSApiTicketResponse, error) {
 	if err != nil {
 		return ret, err
 	}
-	log.Println(string(data))
 	if err := json.Unmarshal(data, &ret); err != nil {
+		return ret, err
+	}
+	if err := ret.Error(); err != nil {
 		return ret, err
 	}
 	return ret, err
