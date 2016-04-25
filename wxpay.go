@@ -422,6 +422,28 @@ func (this WXPayQueryOrderResponse) SignValid() bool {
 	return sign == this.Sign
 }
 
+//正在支付
+func (this WXPayQueryOrderResponse) IsPaying() bool {
+	if this.ReturnCode != SUCCESS {
+		return false
+	}
+	if this.ResultCode != SUCCESS {
+		return false
+	}
+	return this.TradeState == USERPAYING
+}
+
+//支付成功
+func (this WXPayQueryOrderResponse) IsPaySuccess() bool {
+	if this.ReturnCode != SUCCESS {
+		return false
+	}
+	if this.ResultCode != SUCCESS {
+		return false
+	}
+	return this.TradeState == SUCCESS
+}
+
 //2201604122135130001
 //https://api.mch.weixin.qq.com/pay/orderquery
 type WXPayQueryOrder struct {
@@ -456,19 +478,13 @@ func (this WXPayQueryOrder) Post() (WXPayQueryOrderResponse, error) {
 	http := xweb.NewHTTPClient(WX_PAY_HOST)
 	data, err := http.Post("/pay/orderquery", "application/xml", strings.NewReader(this.ToXML()))
 	if err != nil {
-		return ret, err
+		return ret, NET_ERROR
 	}
 	if err := xml.Unmarshal(data, &ret); err != nil {
-		return ret, err
+		return ret, DATA_UNMARSHAL_ERROR
 	}
 	if !ret.SignValid() {
 		return ret, errors.New("sign error")
-	}
-	if ret.ReturnCode != SUCCESS {
-		return ret, errors.New(ret.ReturnMsg)
-	}
-	if ret.ResultCode != SUCCESS {
-		return ret, errors.New(ret.ErrCode + ":" + ret.ErrCodeDes)
 	}
 	return ret, nil
 }

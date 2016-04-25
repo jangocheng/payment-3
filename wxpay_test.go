@@ -31,8 +31,10 @@ func (this *WXPaySuite) TestWXOAuth2Authorize(c *C) {
 }
 
 func (this *WXPaySuite) TestPayReq(c *C) {
-	req := NewWXPayReqForApp("testpayid")
-	log.Println(req)
+	a := WXPayQueryOrder{}
+	a.OutTradeNo = "12121212"
+	ret, _ := a.Post()
+	log.Println(ret.ErrCode)
 }
 
 func (this *WXPaySuite) TestWXUnifiedorder(c *C) {

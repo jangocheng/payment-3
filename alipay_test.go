@@ -51,8 +51,7 @@ func (this *APPaySuite) TearDownSuite(c *C) {
 }
 
 func (this *APPaySuite) TestQuery(c *C) {
-	q := APPayQueryOrder{}
-	q.Post()
+
 }
 
 func (this *APPaySuite) TestValid(c *C) {

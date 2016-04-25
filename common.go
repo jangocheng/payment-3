@@ -1,8 +1,14 @@
 package payment
 
 import (
+	"errors"
 	"math/rand"
 	"time"
+)
+
+var (
+	NET_ERROR            = errors.New("net error")
+	DATA_UNMARSHAL_ERROR = errors.New("data unmarshal error")
 )
 
 var rs string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
