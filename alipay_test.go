@@ -51,7 +51,9 @@ func (this *APPaySuite) TearDownSuite(c *C) {
 }
 
 func (this *APPaySuite) TestQuery(c *C) {
-
+	q := APPayQueryOrder{OutTradeNo: "1201604252137410001"}
+	ret, err := q.Get()
+	log.Println(ret.IsPaySuccess(), err)
 }
 
 func (this *APPaySuite) TestValid(c *C) {
