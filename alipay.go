@@ -192,6 +192,13 @@ type APPayQueryOrderResponse struct {
 	Error        string   `xml:"error" sign:"false"`
 }
 
+func (this APPayQueryOrderResponse) IsPaySuccess() bool {
+	if this.IsSuccess != "T" {
+		return false
+	}
+	return this.TradeStatus == TRADE_SUCCESS
+}
+
 /*
 <alipay>
 	<is_success>T</is_success>
