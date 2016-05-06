@@ -678,7 +678,7 @@ func (this WXUnifiedorderRequest) Post() (WXUnifiedorderResponse, error) {
 	}
 	this.NonceStr = RandStr()
 	if this.NotifyURL == "" {
-		panice(errors.New("NotifyURL miss"))
+		panic(errors.New("NotifyURL miss"))
 	}
 	this.AppId = WX_PAY_CONFIG.APP_ID
 	this.MchId = WX_PAY_CONFIG.MCH_ID
