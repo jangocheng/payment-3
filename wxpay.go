@@ -491,7 +491,7 @@ func (this WXPayQueryOrder) Post() (WXPayQueryOrderResponse, error) {
 //支付结果通用通知
 //微信服务器将会根据统一下单的NotifyURL POST以下数据到商机服务器处理
 type WXPayResultNotifyArgs struct {
-	xweb.XMLArgs
+	xweb.XMLArgs  `xml:"-"`
 	XMLName       struct{} `xml:"xml"`                     //root node name
 	ReturnCode    string   `xml:"return_code" sign:"true"` //SUCCESS or FAIL
 	ReturnMsg     string   `xml:"return_msg" sign:"true"`  //返回信息，如非空，为错误原因
