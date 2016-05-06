@@ -34,8 +34,7 @@ type WXKeyConfig struct {
 }
 
 var (
-	WX_PAY_CONFIG     WXKeyConfig = WXKeyConfig{}
-	WX_PAY_NOTIFY_URL             = "http://pay_notify_url.com"
+	WX_PAY_CONFIG WXKeyConfig = WXKeyConfig{}
 )
 
 func InitWXKey(conf WXKeyConfig) {
@@ -678,7 +677,9 @@ func (this WXUnifiedorderRequest) Post() (WXUnifiedorderResponse, error) {
 		panic(errors.New("TotalFee must > 0 "))
 	}
 	this.NonceStr = RandStr()
-	this.NotifyURL = WX_PAY_NOTIFY_URL
+	if this.NotifyURL == "" {
+		panice(errors.New("NotifyURL miss"))
+	}
 	this.AppId = WX_PAY_CONFIG.APP_ID
 	this.MchId = WX_PAY_CONFIG.MCH_ID
 	if this.AppId == "" {
