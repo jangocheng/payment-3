@@ -308,6 +308,23 @@ func (this APPayResultNotifyArgs) GetTotalFee() float32 {
 	return float32(v)
 }
 
+func (this APPayResultNotifyArgs) IsError() error {
+	if !this.IsValid() {
+		return errors.New("data sign error")
+	}
+	if !this.IsFromAlipay() {
+		return errors.New("data not form alipay")
+	}
+	if !this.IsSuccess() {
+		return errors.New("pay status not success")
+	}
+	return nil
+}
+
+func (this APPayResultNotifyArgs) IsSuccess() bool {
+	return this.TradeStatus == TRADE_SUCCESS || this.TradeStatus == TRADE_FINISHED
+}
+
 //是否来自支付宝
 func (this APPayResultNotifyArgs) IsFromAlipay() bool {
 	q := xweb.NewHTTPValues()
@@ -353,6 +370,9 @@ func NewAPPayResultNotifyArgs(req *http.Request) (APPayResultNotifyArgs, error) 
 	}
 	value := reflect.ValueOf(&args)
 	xweb.MapFormValue(value, form, nil)
+	if err := args.IsError(); err != nil {
+		return args, err
+	}
 	return args, nil
 }
 
