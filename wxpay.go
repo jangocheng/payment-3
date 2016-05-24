@@ -145,6 +145,37 @@ func WXGetAccessToken() (WXGetAccessTokenResponse, error) {
 	return ret, err
 }
 
+//公众号用户Tag
+type WXUserTag struct {
+	Id    int    `json:"id"`
+	Name  string `json:"name"`
+	Count int    `json:"count"` //此标签下粉丝数
+}
+
+//获得公众号用户标签列表
+type WXGetTagsResponse struct {
+	WXError
+	Tags []WXUserTag `json:"tags"`
+}
+
+func WXGetTags(token string) (WXGetTagsResponse, error) {
+	ret := WXGetTagsResponse{}
+	q := xweb.NewHTTPValues()
+	q.Set("access_token", token)
+	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	data, err := http.Get("/cgi-bin/tags/get", q)
+	if err != nil {
+		return ret, err
+	}
+	if err := json.Unmarshal(data, &ret); err != nil {
+		return ret, err
+	}
+	if err := ret.Error(); err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+
 //获取 jsapi_ticket 票据接口
 //https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=ACCESS_TOKEN&type=jsapi
 type WXGetJSApiTicketResponse struct {
