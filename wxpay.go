@@ -674,7 +674,7 @@ type WXConfigForJS struct {
 	JSApiList []string `json:"jsApiList" sign:"false"`
 }
 
-func (this WXConfigForJS) ToJson(jsticket string, url string) (template.JS, error) {
+func (this WXConfigForJS) ToScript(jsticket string, url string) (template.JS, error) {
 	this.AppId = WX_PAY_CONFIG.APP_ID
 	this.Timestamp = TimeNowString()
 	this.NonceStr = RandStr()
@@ -695,11 +695,19 @@ func (this WXConfigForJS) ToJson(jsticket string, url string) (template.JS, erro
 //为jsapi支付返回给客户端用于客户端发起支付
 type WXPayReqForJS struct {
 	AppId     string `json:"appId,omitempty" sign:"true"`
-	Timestamp string `json:"timeStamp,omitempty" sign:"true"`
+	Timestamp int64  `json:"timeStamp,omitempty" sign:"true"`
 	Package   string `json:"package,omitempty" sign:"true"`
 	NonceStr  string `json:"nonceStr,omitempty" sign:"true"`
 	SignType  string `json:"signType,omitempty" sign:"true"`
 	PaySign   string `json:"paySign,omitempty" sign:"false"`
+}
+
+func (this WXPayReqForJS) ToScript() (template.JS, error) {
+	data, err := json.Marshal(this)
+	if err != nil {
+		return template.JS(""), err
+	}
+	return template.JS(data), nil
 }
 
 //新建jsapi支付返回
@@ -708,7 +716,7 @@ func NewWXPayReqForJS(prepayid string) WXPayReqForJS {
 	d.AppId = WX_PAY_CONFIG.APP_ID
 	d.Package = "prepay_id=" + prepayid
 	d.NonceStr = RandStr()
-	d.Timestamp = TimeString(0)
+	d.Timestamp = TimeNow()
 	d.SignType = "MD5"
 	d.PaySign = WXSign(d)
 	return d
