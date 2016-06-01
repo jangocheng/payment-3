@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cxuhua/xweb"
+	"html/template"
 	"reflect"
 	"strings"
 )
@@ -662,6 +663,33 @@ func (this WXPayResultResponse) ToXML() string {
 		panic(err)
 	}
 	return string(data)
+}
+
+type WXConfigForJS struct {
+	Debug     bool     `json:"debug" sign:"false"`
+	AppId     string   `json:"appId" sign:"false"`
+	Timestamp string   `json:"timestamp" sign:"true"`
+	NonceStr  string   `json:"nonceStr" sign:"true"`
+	Signature string   `json:"signature" sign:"false"`
+	JSApiList []string `json:"jsApiList" sign:"false"`
+}
+
+func (this WXConfigForJS) ToJson(jsticket string, url string) (template.JS, error) {
+	this.AppId = WX_PAY_CONFIG.APP_ID
+	this.Timestamp = TimeNowString()
+	this.NonceStr = RandStr()
+	if this.JSApiList == nil {
+		this.JSApiList = []string{}
+	}
+	v := WXParseSignFields(this)
+	v.Set("jsapi_ticket", jsticket)
+	v.Set("url", url)
+	this.Signature = xweb.SHA1String(v.RawEncode())
+	data, err := json.Marshal(this)
+	if err != nil {
+		return template.JS(""), err
+	}
+	return template.JS(data), nil
 }
 
 //为jsapi支付返回给客户端用于客户端发起支付

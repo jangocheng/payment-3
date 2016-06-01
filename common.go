@@ -2,6 +2,7 @@ package payment
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -16,6 +17,11 @@ var rs string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 //获得当前时间戳
 func TimeNow() int64 {
 	return time.Now().Unix()
+}
+
+//获得当前时间戳
+func TimeNowString() string {
+	return fmt.Sprintf("%d", time.Now().Unix())
 }
 
 func TimeString(d int64) string {
