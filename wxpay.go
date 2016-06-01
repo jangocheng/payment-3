@@ -415,11 +415,23 @@ type WXUserInfoRequest struct {
 	Lang        string `json:"lang" sign:"true"`
 }
 
+/*
+{"openid":"oW2MRwIqhll39pDiOdpsAyrmT0gU",
+"nickname":"徐华",
+"sex":1,
+"language":"zh_CN",
+"city":"成都",
+"province":"四川",
+"country":"中国",
+"headimgurl":"http:\/\/wx.qlogo.cn\/mmopen\/mWfv8OZyiccr8DSUkdkhSq4lopNL9wC614Siao90qq0XIwIrt0twI5jicLgLz4KYWVW2JntDoQDj73Ho3BK1znuykLT2BS9ZSCI\/0",
+"privilege":[]}
+*/
 type WXUserInfoResponse struct {
 	WXError
 	OpenId     string   `json:"openid"`
 	NickName   string   `json:"nickname"`
-	Sex        string   `json:"sex"`
+	Language   string   `json:"language"`
+	Sex        int      `json:"sex"`
 	Province   string   `json:"province"`
 	City       string   `json:"city"`
 	Country    string   `json:"country"`
