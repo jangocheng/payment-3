@@ -22,12 +22,12 @@ import (
 
 //alipay
 type APKeyConfig struct {
-	PARTNER_ID          string `json:"partnetId"`         //商户id
-	SELLER_EMAIL        string `json:"sellerEmail"`       //商户支付email
-	SIGN_TYPE           string `json:"signType"`          //签名类型 RSA
-	ALIPAY_KEY          string `json:"alipayKey"`         //阿里支付密钥
-	PARTNET_PRIVATE_KEY string `json:"partnerPrivateKey"` //商户私钥
-	ALIPAY_PUBLIC_KEY   string `json:"alipayPublicKey"`   //阿里支付公钥
+	PARTNER_ID          string //商户id
+	SELLER_EMAIL        string //商户支付email
+	SIGN_TYPE           string //签名类型 RSA
+	ALIPAY_KEY          string //阿里支付密钥
+	PARTNET_PRIVATE_KEY string //商户私钥
+	ALIPAY_PUBLIC_KEY   string //阿里支付公钥
 }
 
 var (

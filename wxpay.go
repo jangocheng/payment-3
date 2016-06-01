@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -27,10 +28,11 @@ import (
  */
 
 type WXKeyConfig struct {
-	APP_ID     string `json:"appId"`
-	APP_SECRET string `json:"appSecret"`
-	MCH_ID     string `json:"mchId"`
-	MCH_KEY    string `json:"mchKey"`
+	APP_ID     string
+	APP_SECRET string
+	MCH_ID     string
+	MCH_KEY    string
+	TLSConfig  *tls.Config
 }
 
 var (
@@ -86,9 +88,9 @@ const (
 
 //返回字符串
 const (
-	SUCCESS    = "SUCCESS"
 	FAIL       = "FAIL"
 	NOTPAY     = "NOTPAY"
+	SUCCESS    = "SUCCESS"
 	USERPAYING = "USERPAYING"
 )
 
@@ -272,6 +274,100 @@ func (this WXOAuth2AccessTokenRequest) Get() (WXOAuth2AccessTokenResponse, error
 	return ret, nil
 }
 
+//https://api.mch.weixin.qq.com/secapi/pay/refund
+//微信退款发起请求
+type WXRefundRequest struct {
+	XMLName       struct{} `xml:"xml"`
+	AppId         string   `xml:"appid,omitempty" sign:"true"`
+	MchId         string   `xml:"mch_id,omitempty" sign:"true"`
+	NonceStr      string   `xml:"nonce_str,omitempty" sign:"true"`
+	OPUserId      string   `xml:"op_user_id,omitempty" sign:"true"`
+	OutRefundNO   string   `xml:"out_refund_no,omitempty" sign:"true"`
+	OutTradeNO    string   `xml:"out_trade_no,omitempty" sign:"true"`
+	RefundFee     string   `xml:"refund_fee,omitempty" sign:"true"`
+	Sign          string   `xml:"sign,omitempty" sign:"false"`
+	TotalFee      string   `xml:"total_fee,omitempty" sign:"true"`
+	TransactionId string   `xml:"transaction_id,omitempty" sign:"true"`
+}
+
+func (this WXRefundRequest) ToXML() string {
+	data, err := xml.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+type WXRefundResponse struct {
+	XMLName            struct{} `xml:"xml"`
+	AppId              string   `xml:"appid" sign:"true"`
+	CashFee            string   `xml:"cash_fee,omitempty" sign:"true"`
+	CashRefundFee      string   `xml:"cash_refund_fee,omitempty" sign:"true"`
+	device_info        string   `xml:"device_info,omitempty" sign:"true"`
+	ErrCode            string   `xml:"err_code" sign:"true"`
+	ErrCodeDes         string   `xml:"err_code_des" sign:"true"`
+	FeeType            string   `xml:"fee_type,omitempty" sign:"true"`
+	MchId              string   `xml:"mch_id" sign:"true"`
+	NonceStr           string   `xml:"nonce_str" sign:"true"`
+	OutRefundNO        string   `xml:"out_refund_no,omitempty" sign:"true"`
+	OutTradeNO         string   `xml:"out_trade_no,omitempty" sign:"true"`
+	RefundChannel      string   `xml:"refund_channel,omitempty" sign:"true"`
+	RefundFee          string   `xml:"refund_fee,omitempty" sign:"true"`
+	RefundId           string   `xml:"refund_id,omitempty" sign:"true"`
+	ResultCode         string   `xml:"result_code" sign:"true"`
+	ReturnCode         string   `xml:"return_code" sign:"true"`
+	ReturnMsg          string   `xml:"return_msg" sign:"true"`
+	SettlementTotalFee string   `xml:"settlement_total_fee,omitempty" sign:"true"`
+	Sign               string   `xml:"sign" sign:"false"`
+	TotalFee           string   `xml:"total_fee,omitempty" sign:"true"`
+	TransactionId      string   `xml:"transaction_id,omitempty" sign:"true"`
+}
+
+func (this WXRefundResponse) SignValid() bool {
+	sign := WXSign(this)
+	return sign == this.Sign
+}
+
+func (this WXRefundRequest) Post() (WXRefundResponse, error) {
+	ret := WXRefundResponse{}
+	this.AppId = WX_PAY_CONFIG.APP_ID
+	this.MchId = WX_PAY_CONFIG.MCH_ID
+	this.OPUserId = WX_PAY_CONFIG.MCH_ID
+	this.NonceStr = RandStr()
+	if this.TransactionId == "" {
+		panic(errors.New("TransactionId miss"))
+	}
+	if this.OutTradeNO == "" {
+		panic(errors.New("OutTradeNO miss"))
+	}
+	if this.OutRefundNO == "" {
+		panic(errors.New("OutRefundNO miss"))
+	}
+	if this.TotalFee == "" {
+		panic(errors.New("TotalFee miss"))
+	}
+	if this.RefundFee == "" {
+		panic(errors.New("RefundFee miss"))
+	}
+	if WX_PAY_CONFIG.TLSConfig == nil {
+		panic(errors.New("wx pay key config miss"))
+	}
+	this.Sign = WXSign(this)
+	http := xweb.NewHTTPClient(WX_PAY_HOST, WX_PAY_CONFIG.TLSConfig)
+	data, err := http.Post("/secapi/pay/refund", "application/xml", strings.NewReader(this.ToXML()))
+	if err != nil {
+		return ret, NET_ERROR
+	}
+	if err := xml.Unmarshal(data, &ret); err != nil {
+		return ret, DATA_UNMARSHAL_ERROR
+	}
+	if !ret.SignValid() {
+		return ret, errors.New("sign error")
+	}
+	return ret, nil
+	return ret, nil
+}
+
 //刷新网页授权凭证
 //https://api.weixin.qq.com/sns/oauth2/refresh_token
 type WXOAuth2RefreshTokenRequest struct {
@@ -383,68 +479,30 @@ func AuthGet(token, openid string) WXError {
 	return ret
 }
 
-/*
-<xml>
-<return_code><![CDATA[SUCCESS]]></return_code>
-<return_msg><![CDATA[OK]]></return_msg>
-<appid><![CDATA[wx51af527d53ba9bf6]]></appid>
-<mch_id><![CDATA[1325392101]]></mch_id>
-<nonce_str><![CDATA[F8TArcf4dohErOyy]]></nonce_str>
-<sign><![CDATA[CDB27083D185045DC23B1BFCAA31246D]]></sign>
-<result_code><![CDATA[SUCCESS]]></result_code>
-<openid><![CDATA[oGb4DwVuq88sFUrDKgSQ39O85U0E]]></openid>
-<is_subscribe><![CDATA[N]]></is_subscribe>
-<trade_type><![CDATA[APP]]></trade_type>
-<bank_type><![CDATA[CCB_DEBIT]]></bank_type>
-<total_fee>1</total_fee>
-<fee_type><![CDATA[CNY]]></fee_type>
-<transaction_id><![CDATA[4000402001201604124780687785]]></transaction_id>
-<out_trade_no><![CDATA[2201604122135130001]]></out_trade_no>
-<attach><![CDATA[]]></attach>
-<time_end><![CDATA[20160412213526]]></time_end>
-<trade_state><![CDATA[SUCCESS]]></trade_state>
-<cash_fee>1</cash_fee>
-</xml>
-*/
-
-/*
-<xml><return_code><![CDATA[SUCCESS]]></return_code>
-<return_msg><![CDATA[OK]]></return_msg>
-<appid><![CDATA[wx51af527d53ba9bf6]]></appid>
-<mch_id><![CDATA[1325392101]]></mch_id>
-<nonce_str><![CDATA[wKZwPiqMmMXsVouc]]></nonce_str>
-<sign><![CDATA[C4E7D7BA7FBD0495CB8F11903DF62B5B]]></sign>
-<result_code><![CDATA[SUCCESS]]></result_code>
-<out_trade_no><![CDATA[1201604221428370001]]></out_trade_no>
-<trade_state><![CDATA[NOTPAY]]></trade_state>
-<trade_state_desc><![CDATA[订单未支付]]></trade_state_desc>
-</xml>
-*/
-
 type WXPayQueryOrderResponse struct {
 	XMLName        struct{} `xml:"xml"`
-	ReturnCode     string   `xml:"return_code" sign:"true"`
-	ReturnMsg      string   `xml:"return_msg" sign:"true"`
 	AppId          string   `xml:"appid" sign:"true"`
-	MchId          string   `xml:"mch_id" sign:"true"`
-	NonceStr       string   `xml:"nonce_str" sign:"true"`
-	Sign           string   `xml:"sign" sign:"false"`
-	ResultCode     string   `xml:"result_code" sign:"true"`
+	Attach         string   `xml:"attach" sign:"true"`
+	BankType       string   `xml:"bank_type" sign:"true"`
+	CashFee        string   `xml:"cash_fee" sign:"true"`
 	ErrCode        string   `xml:"err_code" sign:"true"`
 	ErrCodeDes     string   `xml:"err_code_des" sign:"true"`
-	OpenId         string   `xml:"openid" sign:"true"`
-	IsSubScribe    string   `xml:"is_subscribe" sign:"true"`
-	TradeType      string   `xml:"trade_type" sign:"true"`
-	BankType       string   `xml:"bank_type" sign:"true"`
-	TotalFee       string   `xml:"total_fee" sign:"true"`
 	FeeType        string   `xml:"fee_type" sign:"true"`
-	TransactionId  string   `xml:"transaction_id" sign:"true"`
+	IsSubScribe    string   `xml:"is_subscribe" sign:"true"`
+	MchId          string   `xml:"mch_id" sign:"true"`
+	NonceStr       string   `xml:"nonce_str" sign:"true"`
+	OpenId         string   `xml:"openid" sign:"true"`
 	OutTradeNo     string   `xml:"out_trade_no" sign:"true"`
-	Attach         string   `xml:"attach" sign:"true"`
+	ResultCode     string   `xml:"result_code" sign:"true"`
+	ReturnCode     string   `xml:"return_code" sign:"true"`
+	ReturnMsg      string   `xml:"return_msg" sign:"true"`
+	Sign           string   `xml:"sign" sign:"false"`
 	TimeEnd        string   `xml:"time_end" sign:"true"`
+	TotalFee       string   `xml:"total_fee" sign:"true"`
 	TradeState     string   `xml:"trade_state" sign:"true"`
 	TradeStateDesc string   `xml:"trade_state_desc" sign:"true"`
-	CashFee        string   `xml:"cash_fee" sign:"true"`
+	TradeType      string   `xml:"trade_type" sign:"true"`
+	TransactionId  string   `xml:"transaction_id" sign:"true"`
 }
 
 func (this WXPayQueryOrderResponse) SignValid() bool {
@@ -523,31 +581,31 @@ func (this WXPayQueryOrder) Post() (WXPayQueryOrderResponse, error) {
 //微信服务器将会根据统一下单的NotifyURL POST以下数据到商机服务器处理
 type WXPayResultNotifyArgs struct {
 	xweb.XMLArgs  `xml:"-"`
-	XMLName       struct{} `xml:"xml"`                     //root node name
-	ReturnCode    string   `xml:"return_code" sign:"true"` //SUCCESS or FAIL
-	ReturnMsg     string   `xml:"return_msg" sign:"true"`  //返回信息，如非空，为错误原因
+	XMLName       struct{} `xml:"xml"` //root node name
 	AppId         string   `xml:"appid" sign:"true"`
-	MchId         string   `xml:"mch_id" sign:"true"`
-	DeviceInfo    string   `xml:"device_info" sign:"true"`
-	NonceStr      string   `xml:"nonce_str" sign:"true"`
-	Sign          string   `xml:"sign" sign:"false"`       //sign=false表示不参与签名
-	ResultCode    string   `xml:"result_code" sign:"true"` //SUCCESS or FAIL
-	ErrCode       string   `xml:"err_code" sign:"true"`
-	ErrCodeDes    string   `xml:"err_code_des" sign:"true"`
-	OpenId        string   `xml:"openid" sign:"true"`
-	IsSubScribe   string   `xml:"is_subscribe" sign:"true"` //Y or N
-	TradeType     string   `xml:"trade_type" sign:"true"`   //JSAPI、NATIVE、APP
+	Attach        string   `xml:"attach" sign:"true"`
 	BankType      string   `xml:"bank_type" sign:"true"`
-	TotalFee      string   `xml:"total_fee" sign:"true"`
-	FeeType       string   `xml:"fee_type" sign:"true"`
 	CashFee       string   `xml:"cash_fee" sign:"true"`
 	CashFeeType   string   `xml:"cash_fee_type" sign:"true"`
-	TransactionId string   `xml:"transaction_id" sign:"true"`
-	OutTradeNo    string   `xml:"out_trade_no" sign:"true"`
-	Attach        string   `xml:"attach" sign:"true"`
-	TimeEnd       string   `xml:"time_end" sign:"true"`
-	CouponFee     string   `xml:"coupon_fee" sign:"true"`
 	CouponCount   string   `xml:"coupon_count" sign:"true"`
+	CouponFee     string   `xml:"coupon_fee" sign:"true"`
+	DeviceInfo    string   `xml:"device_info" sign:"true"`
+	ErrCode       string   `xml:"err_code" sign:"true"`
+	ErrCodeDes    string   `xml:"err_code_des" sign:"true"`
+	FeeType       string   `xml:"fee_type" sign:"true"`
+	IsSubScribe   string   `xml:"is_subscribe" sign:"true"` //Y or N
+	MchId         string   `xml:"mch_id" sign:"true"`
+	NonceStr      string   `xml:"nonce_str" sign:"true"`
+	OpenId        string   `xml:"openid" sign:"true"`
+	OutTradeNo    string   `xml:"out_trade_no" sign:"true"`
+	ResultCode    string   `xml:"result_code" sign:"true"` //SUCCESS or FAIL
+	ReturnCode    string   `xml:"return_code" sign:"true"` //SUCCESS or FAIL
+	ReturnMsg     string   `xml:"return_msg" sign:"true"`  //返回信息，如非空，为错误原因
+	Sign          string   `xml:"sign" sign:"false"`       //sign=false表示不参与签名
+	TimeEnd       string   `xml:"time_end" sign:"true"`
+	TotalFee      string   `xml:"total_fee" sign:"true"`
+	TradeType     string   `xml:"trade_type" sign:"true"` //JSAPI、NATIVE、APP
+	TransactionId string   `xml:"transaction_id" sign:"true"`
 }
 
 func (this WXPayResultNotifyArgs) String() string {
@@ -619,12 +677,12 @@ func NewWXPayReqForJS(prepayid string) WXPayReqForJS {
 //为app支付返回给客户端用于客户端发起支付
 type WXPayReqForApp struct {
 	AppId     string `json:"appid,omitempty" sign:"true"`
+	NonceStr  string `json:"noncestr,omitempty" sign:"true"`
+	Package   string `json:"package,omitempty" sign:"true"` //APP支付固定(Sign=WXPay)
 	PartnerId string `json:"partnerid,omitempty" sign:"true"`
 	PrepayId  string `json:"prepayid,omitempty" sign:"true"` //统一下单返回
-	Package   string `json:"package,omitempty" sign:"true"`  //APP支付固定(Sign=WXPay)
-	NonceStr  string `json:"noncestr,omitempty" sign:"true"`
-	Timestamp int64  `json:"timestamp,omitempty" sign:"true"`
 	Sign      string `json:"sign,omitempty" sign:"false"`
+	Timestamp int64  `json:"timestamp,omitempty" sign:"true"`
 }
 
 func (this WXPayReqForApp) String() string {
@@ -653,43 +711,43 @@ func NewWXPayReqForApp(prepayid string) WXPayReqForApp {
 type WXUnifiedorderRequest struct {
 	XMLName        struct{} `xml:"xml"` //root node name
 	AppId          string   `xml:"appid,omitempty" sign:"true"`
-	MchId          string   `xml:"mch_id,omitempty" sign:"true"`
-	DeviceInfo     string   `xml:"device_info,omitempty" sign:"true"`
-	NonceStr       string   `xml:"nonce_str,omitempty" sign:"true"`
-	Sign           string   `xml:"sign,omitempty"  sign:"false"` //sign=false表示不参与签名
+	Attach         string   `xml:"attach,omitempty" sign:"true"`
 	Body           string   `xml:"body,omitempty" sign:"true"`
 	Detail         string   `xml:"detail,omitempty" sign:"true"`
-	Attach         string   `xml:"attach,omitempty" sign:"true"`
-	OutTradeNo     string   `xml:"out_trade_no,omitempty" sign:"true"`
+	DeviceInfo     string   `xml:"device_info,omitempty" sign:"true"`
 	FeeType        string   `xml:"fee_type,omitempty" sign:"true"`
-	TotalFee       string   `xml:"total_fee,omitempty" sign:"true"`
-	SpBillCreateIp string   `xml:"spbill_create_ip,omitempty" sign:"true"`
-	TimeStart      string   `xml:"time_start,omitempty" sign:"true"`
-	TimeExpire     string   `xml:"time_expire,omitempty" sign:"true"`
 	GoodsTag       string   `xml:"goods_tag,omitempty" sign:"true"`
-	NotifyURL      string   `xml:"notify_url,omitempty" sign:"true"`
-	TradeType      string   `xml:"trade_type,omitempty" sign:"true"`
 	LimitPay       string   `xml:"limit_pay,omitempty" sign:"true"`
+	MchId          string   `xml:"mch_id,omitempty" sign:"true"`
+	NonceStr       string   `xml:"nonce_str,omitempty" sign:"true"`
+	NotifyURL      string   `xml:"notify_url,omitempty" sign:"true"`
+	OpenId         string   `xml:"openid,omitempty" sign:"true"` //TradeType=TRADE_TYPE_JSAPI 必须
+	OutTradeNo     string   `xml:"out_trade_no,omitempty" sign:"true"`
 	ProductId      string   `xml:"product_id,omitempty" sign:"true"` //TradeType=TRADE_TYPE_NATIVE 必须
-	OpenId         string   `xml:"openid,omitempty" sign:"true"`     //TradeType=TRADE_TYPE_JSAPI 必须
+	Sign           string   `xml:"sign,omitempty"  sign:"false"`     //sign=false表示不参与签名
+	SpBillCreateIp string   `xml:"spbill_create_ip,omitempty" sign:"true"`
+	TimeExpire     string   `xml:"time_expire,omitempty" sign:"true"`
+	TimeStart      string   `xml:"time_start,omitempty" sign:"true"`
+	TotalFee       string   `xml:"total_fee,omitempty" sign:"true"`
+	TradeType      string   `xml:"trade_type,omitempty" sign:"true"`
 }
 
 //微信支付:统一下单返回数据
 type WXUnifiedorderResponse struct {
-	XMLName    struct{} `xml:"xml"`                               //root node name
-	ReturnCode string   `xml:"return_code,omitempty" sign:"true"` //SUCCESS or FAIL
-	ReturnMsg  string   `xml:"return_msg,omitempty" sign:"true"`  //返回信息，如非空，为错误原因
+	XMLName    struct{} `xml:"xml"` //root node name
 	AppId      string   `xml:"appid,omitempty" sign:"true"`
-	MchId      string   `xml:"mch_id,omitempty" sign:"true"`
+	CodeURL    string   `xml:"code_url,omitempty" sign:"true"` //trade_type=NATIVE返回code url
 	DeviceInfo string   `xml:"device_info,omitempty" sign:"true"`
-	NonceStr   string   `xml:"nonce_str,omitempty" sign:"true"`
-	Sign       string   `xml:"sign,omitempty"  sign:"false"`      //sign=false表示不参与签名
-	ResultCode string   `xml:"result_code,omitempty" sign:"true"` //SUCCESS or FAIL
 	ErrCode    string   `xml:"err_code,omitempty" sign:"true"`
 	ErrCodeDes string   `xml:"err_code_des,omitempty" sign:"true"`
-	TradeType  string   `xml:"trade_type,omitempty" sign:"true"`
+	MchId      string   `xml:"mch_id,omitempty" sign:"true"`
+	NonceStr   string   `xml:"nonce_str,omitempty" sign:"true"`
 	PrePayId   string   `xml:"prepay_id,omitempty" sign:"true"`
-	CodeURL    string   `xml:"code_url,omitempty" sign:"true"` //trade_type=NATIVE返回code url
+	ResultCode string   `xml:"result_code,omitempty" sign:"true"` //SUCCESS or FAIL
+	ReturnCode string   `xml:"return_code,omitempty" sign:"true"` //SUCCESS or FAIL
+	ReturnMsg  string   `xml:"return_msg,omitempty" sign:"true"`  //返回信息，如非空，为错误原因
+	Sign       string   `xml:"sign,omitempty"  sign:"false"`      //sign=false表示不参与签名
+	TradeType  string   `xml:"trade_type,omitempty" sign:"true"`
 }
 
 func (this WXUnifiedorderResponse) Error() error {
