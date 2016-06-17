@@ -25,8 +25,7 @@ func TimeNowString() string {
 }
 
 func TimeString(d int64) string {
-	now := time.Now().Unix() + d
-	return time.Unix(now, 0).Format("20060102150405")
+	return time.Now().Add(time.Duration(d) * time.Second).Format("20060102150405")
 }
 
 //获得随机字符串
