@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/cxuhua/xweb"
@@ -119,19 +118,15 @@ func APParseSignFields(src interface{}) xweb.HTTPValues {
 }
 
 //校验来自阿里的数据
-func APRSAVerify(src string, sign string) (bool, error) {
+func APRSAVerify(src string, sign string) error {
 	h := crypto.SHA1.New()
 	h.Write([]byte(src))
 	hashed := h.Sum(nil)
 	data, err := base64.StdEncoding.DecodeString(sign)
 	if err != nil {
-		return false, err
+		return err
 	}
-	err = rsa.VerifyPKCS1v15(ALIPAY_PUBLIC_KEY, crypto.SHA1, hashed, data)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	return rsa.VerifyPKCS1v15(ALIPAY_PUBLIC_KEY, crypto.SHA1, hashed, data)
 }
 
 const (
@@ -257,11 +252,11 @@ func (this APPayQueryOrder) Get() (APPayQueryOrderResponse, error) {
 	v.Set("out_trade_no", this.OutTradeNo)
 	v.Set("sign_type", "MD5")
 	v.Set("sign", APMD5Sign(this))
-	data, err := c.Get("/gateway.do", v)
+	res, err := c.Get("/gateway.do", v)
 	if err != nil {
 		return ret, err
 	}
-	if err := xml.Unmarshal(data, &ret); err != nil {
+	if err := res.ToXml(&ret); err != nil {
 		return ret, err
 	}
 	if ret.Sign != APMD5Sign(ret) {
@@ -332,7 +327,11 @@ func (this APPayResultNotifyArgs) IsFromAlipay() bool {
 	q.Set("partner", AP_PAY_CONFIG.PARTNER_ID)
 	q.Set("notify_id", this.NotifyId)
 	http := xweb.NewHTTPClient("https://mapi.alipay.com")
-	d, err := http.Get("/gateway.do", q)
+	res, err := http.Get("/gateway.do", q)
+	if err != nil {
+		return false
+	}
+	d, err := res.ToBytes()
 	if err != nil {
 		return false
 	}
@@ -343,11 +342,10 @@ func (this APPayResultNotifyArgs) IsFromAlipay() bool {
 func (this APPayResultNotifyArgs) IsValid() bool {
 	v := APParseSignFields(this)
 	s := v.RawEncode()
-	if ret, err := APRSAVerify(s, this.Sign); err != nil {
+	if err := APRSAVerify(s, this.Sign); err != nil {
 		return false
-	} else {
-		return ret
 	}
+	return true
 }
 
 func (this APPayResultNotifyArgs) String() string {

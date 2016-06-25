@@ -1,12 +1,14 @@
 package payment
 
 import (
+	"log"
 	"testing"
 )
 
 func TestUnion(t *testing.T) {
 	conf := UnionKeyConfig{}
 	conf.MCH_ID = "777290058130633"
+	conf.UNION_HOST = "https://101.231.204.80:5000"
 	conf.MCH_PRIVATE = `
 -----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgQCQvyFGMGkKxojiX2VUkXvu6mNJk/ayHRHXo7KOxC3oQE+QZPk2
@@ -75,11 +77,17 @@ i0DQetTU2RXTrynv+l4kMy0h9b/Hdlbuh2s0QZqlUMXx2biy0GvpF2pR8f+OaLuT
 AtaKdU4T2+jO44+vWNNN2VoAaw0xY6IZ3/A1GL0x
 -----END CERTIFICATE-----
 `
+
 	InitUnionKey(conf)
 
-	req := UnionConsumeRequest{}
+	// req := UnionConsumeRequest{}
+	// req.OrderId = "testorderid"
+	// req.BackUrl = "http://www.cegou.co/payment/union"
+	// req.TxnAmt = "1"
+	// log.Println(req.Post())
+
+	req := UnionQueryOrderRequest{}
 	req.OrderId = "testorderid"
-	req.BackUrl = "http://www.cegou.co/payment/union"
-	req.TxnAmt = "1"
-	req.Post()
+	req.TxnTime = "20160618143731"
+	log.Println(req.Post())
 }

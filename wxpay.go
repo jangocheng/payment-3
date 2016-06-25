@@ -135,11 +135,11 @@ func WXGetAccessToken() (WXGetAccessTokenResponse, error) {
 	q.Set("appid", WX_PAY_CONFIG.APP_ID)
 	q.Set("secret", WX_PAY_CONFIG.APP_SECRET)
 	c := xweb.NewHTTPClient("https://api.weixin.qq.com")
-	data, err := c.Get("/cgi-bin/token", q)
+	res, err := c.Get("/cgi-bin/token", q)
 	if err != nil {
 		return ret, err
 	}
-	if err := json.Unmarshal(data, &ret); err != nil {
+	if err := res.ToJson(&ret); err != nil {
 		return ret, err
 	}
 	if err := ret.Error(); err != nil {
@@ -166,11 +166,11 @@ func WXGetTags(token string) (WXGetTagsResponse, error) {
 	q := xweb.NewHTTPValues()
 	q.Set("access_token", token)
 	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
-	data, err := http.Get("/cgi-bin/tags/get", q)
+	res, err := http.Get("/cgi-bin/tags/get", q)
 	if err != nil {
 		return ret, err
 	}
-	if err := json.Unmarshal(data, &ret); err != nil {
+	if err := res.ToJson(&ret); err != nil {
 		return ret, err
 	}
 	if err := ret.Error(); err != nil {
@@ -196,11 +196,11 @@ func WXGetJSApiTicket(token string) (WXGetJSApiTicketResponse, error) {
 	q.Set("access_token", token)
 	q.Set("type", "jsapi")
 	c := xweb.NewHTTPClient("https://api.weixin.qq.com")
-	data, err := c.Get("/cgi-bin/ticket/getticket", q)
+	res, err := c.Get("/cgi-bin/ticket/getticket", q)
 	if err != nil {
 		return ret, err
 	}
-	if err := json.Unmarshal(data, &ret); err != nil {
+	if err := res.ToJson(&ret); err != nil {
 		return ret, err
 	}
 	if err := ret.Error(); err != nil {
@@ -262,11 +262,11 @@ func (this WXOAuth2AccessTokenRequest) Get() (WXOAuth2AccessTokenResponse, error
 	this.GrantType = "authorization_code"
 	v := WXParseSignFields(this)
 	http := xweb.NewHTTPClient(WX_API_HOST)
-	data, err := http.Get("/sns/oauth2/access_token", v)
+	res, err := http.Get("/sns/oauth2/access_token", v)
 	if err != nil {
 		return ret, err
 	}
-	if err = json.Unmarshal(data, &ret); err != nil {
+	if err := res.ToJson(&ret); err != nil {
 		return ret, err
 	}
 	if err := ret.Error(); err != nil {
@@ -355,17 +355,16 @@ func (this WXRefundRequest) Post() (WXRefundResponse, error) {
 	}
 	this.Sign = WXSign(this)
 	http := xweb.NewHTTPClient(WX_PAY_HOST, WX_PAY_CONFIG.TLSConfig)
-	data, err := http.Post("/secapi/pay/refund", "application/xml", strings.NewReader(this.ToXML()))
+	res, err := http.Post("/secapi/pay/refund", "application/xml", strings.NewReader(this.ToXML()))
 	if err != nil {
 		return ret, NET_ERROR
 	}
-	if err := xml.Unmarshal(data, &ret); err != nil {
+	if err := res.ToXml(&ret); err != nil {
 		return ret, DATA_UNMARSHAL_ERROR
 	}
 	if !ret.SignValid() {
 		return ret, errors.New("sign error")
 	}
-	return ret, nil
 	return ret, nil
 }
 
@@ -395,11 +394,11 @@ func (this WXOAuth2RefreshTokenRequest) Get() (WXOAuth2RefreshTokenResponse, err
 	this.GrantType = "refresh_token"
 	v := WXParseSignFields(this)
 	http := xweb.NewHTTPClient(WX_API_HOST)
-	data, err := http.Get("/sns/oauth2/refresh_token", v)
+	res, err := http.Get("/sns/oauth2/refresh_token", v)
 	if err != nil {
 		return ret, err
 	}
-	if err = json.Unmarshal(data, &ret); err != nil {
+	if err := res.ToJson(&ret); err != nil {
 		return ret, err
 	}
 	if err := ret.Error(); err != nil {
@@ -454,11 +453,11 @@ func (this WXUserInfoRequest) Get() (WXUserInfoResponse, error) {
 	}
 	v := WXParseSignFields(this)
 	http := xweb.NewHTTPClient(WX_API_HOST)
-	data, err := http.Get("/sns/userinfo", v)
+	res, err := http.Get("/sns/userinfo", v)
 	if err != nil {
 		return ret, err
 	}
-	if err = json.Unmarshal(data, &ret); err != nil {
+	if err := res.ToJson(&ret); err != nil {
 		return ret, err
 	}
 	if err := ret.Error(); err != nil {
@@ -481,13 +480,16 @@ func AuthGet(token, openid string) WXError {
 	v := xweb.NewHTTPValues()
 	v.Set("access_token", token)
 	v.Set("openid", openid)
-	data, err := http.Get("/sns/auth", v)
+	res, err := http.Get("/sns/auth", v)
 	if err != nil {
 		ret.ErrCode = 1000000
 		ret.ErrMsg = err.Error()
-	} else if err = json.Unmarshal(data, &ret); err != nil {
+		return ret
+	}
+	if err := res.ToJson(&ret); err != nil {
 		ret.ErrCode = 1000001
 		ret.ErrMsg = err.Error()
+		return ret
 	}
 	return ret
 }
@@ -577,11 +579,11 @@ func (this WXPayQueryOrder) Post() (WXPayQueryOrderResponse, error) {
 	}
 	this.Sign = WXSign(this)
 	http := xweb.NewHTTPClient(WX_PAY_HOST)
-	data, err := http.Post("/pay/orderquery", "application/xml", strings.NewReader(this.ToXML()))
+	res, err := http.Post("/pay/orderquery", "application/xml", strings.NewReader(this.ToXML()))
 	if err != nil {
 		return ret, NET_ERROR
 	}
-	if err := xml.Unmarshal(data, &ret); err != nil {
+	if err := res.ToXml(&ret); err != nil {
 		return ret, DATA_UNMARSHAL_ERROR
 	}
 	if !ret.SignValid() {
@@ -839,11 +841,11 @@ func (this WXUnifiedorderRequest) Post() (WXUnifiedorderResponse, error) {
 	}
 	this.Sign = WXSign(this)
 	http := xweb.NewHTTPClient(WX_PAY_HOST)
-	data, err := http.Post("/pay/unifiedorder", "application/xml", strings.NewReader(this.ToXML()))
+	res, err := http.Post("/pay/unifiedorder", "application/xml", strings.NewReader(this.ToXML()))
 	if err != nil {
 		return ret, err
 	}
-	if err = xml.Unmarshal(data, &ret); err != nil {
+	if err := res.ToXml(&ret); err != nil {
 		return ret, err
 	}
 	if err := ret.Error(); err != nil {
