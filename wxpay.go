@@ -93,6 +93,13 @@ const (
 	TRADE_TYPE_APP    = "APP"
 )
 
+//转账校验
+const (
+	NO_CHECK     = "NO_CHECK"     //不校验真实姓名
+	FORCE_CHECK  = "FORCE_CHECK"  //强制校验
+	OPTION_CHECK = "OPTION_CHECK" //有则校验
+)
+
 //返回字符串
 const (
 	FAIL       = "FAIL"
@@ -131,6 +138,149 @@ type WXGetAccessTokenResponse struct {
 	WXError
 	AccessToken string `json:"access_token"`
 	Expires     int    `json:"expires_in"`
+}
+
+//微信转账
+type WXTransfersRequest struct {
+	AppId          string `xml:"mch_appid" sign:"true"`
+	MchId          string `xml:"mchid" sign:"true"`
+	NonceStr       string `xml:"nonce_str" sign:"true"`
+	Sign           string `xml:"sign" sign:"false"`
+	PartnerTradeNo string `xml:"partner_trade_no" sign:"true"`
+	OpenId         string `xml:"openid" sign:"true"`
+	CheckName      string `xml:"check_name" sign:"true"`
+	Amount         int    `xml:"amount" sign:"true"`
+	Desc           string `xml:"desc" sign:"true"`
+	SpbillCreateIp string `xml:"spbill_create_ip" sign:"true"`
+}
+
+func (this WXTransfersRequest) ToXml() string {
+	data, err := xml.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+type WXTransfersResponse struct {
+	ReturnCode string `xml:"return_code"`
+	ReturnMsg  string `xml:"return_msg"`
+	ResultCode string `xml:"result_code"`
+	ErrCodeDes string `xml:"err_code_des"`
+}
+
+func (this WXTransfersRequest) Post() (WXTransfersResponse, error) {
+	ret := WXTransfersResponse{}
+	this.PartnerTradeNo = xweb.GenId()
+	this.NonceStr = RandStr()
+	this.MchId = WX_PAY_CONFIG.MCH_ID
+	this.AppId = WX_PAY_CONFIG.APP_ID
+	if this.Amount <= 0 {
+		return ret, errors.New("Amount error")
+	}
+	if this.SpbillCreateIp == "" {
+		return ret, errors.New("SpbillCreateIp miss")
+	}
+	if this.Desc == "" {
+		return ret, errors.New("Desc miss")
+	}
+	if this.CheckName == "" {
+		return ret, errors.New("CheckName miss")
+	}
+	vs := WXParseSignFields(this)
+	this.Sign = strings.ToUpper(vs.MD5Sign(WX_PAY_CONFIG.MCH_KEY))
+	body := strings.NewReader(this.ToXml())
+	http := xweb.NewHTTPClient(WX_PAY_HOST, WX_PAY_CONFIG.TLSConfig)
+	res, err := http.Post("/mmpaymkttransfers/promotion/transfers", "application/xml", body)
+	if err != nil {
+		return ret, err
+	}
+	if err := res.ToXml(&ret); err != nil {
+		return ret, err
+	}
+	if ret.ReturnCode != SUCCESS || ret.ResultCode != SUCCESS {
+		return ret, errors.New(ret.ReturnMsg)
+	}
+	return ret, nil
+}
+
+//微信红包发送
+type WXRedPackageRequest struct {
+	MchBillno   string `xml:"mch_billno" sign:"true"`
+	NonceStr    string `xml:"nonce_str" sign:"true"`
+	MchId       string `xml:"mch_id" sign:"true"`
+	AppId       string `xml:"wxappid" sign:"true"`
+	SendName    string `xml:"send_name" sign:"true"`
+	ReOpenId    string `xml:"re_openid" sign:"true"`
+	TotalAmount int    `xml:"total_amount" sign:"true"`
+	TotalNum    int    `xml:"total_num" sign:"true"`
+	Wishing     string `xml:"wishing" sign:"true"`
+	ClientIp    string `xml:"client_ip" sign:"true"`
+	ActName     string `xml:"act_name" sign:"true"`
+	Remark      string `xml:"remark" sign:"true"`
+	Sign        string `xml:"sign" sign:"false"`
+}
+
+func (this WXRedPackageRequest) ToXml() string {
+	data, err := xml.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+type WXRedPackageResponse struct {
+	ReturnCode string `xml:"return_code"`
+	ReturnMsg  string `xml:"return_msg"`
+	ResultCode string `xml:"result_code"`
+	ErrCodeDes string `xml:"err_code_des"`
+}
+
+func (this WXRedPackageRequest) Post() (WXRedPackageResponse, error) {
+	ret := WXRedPackageResponse{}
+	this.MchBillno = xweb.GenId()
+	this.NonceStr = RandStr()
+	this.MchId = WX_PAY_CONFIG.MCH_ID
+	this.AppId = WX_PAY_CONFIG.APP_ID
+	if this.SendName == "" {
+		return ret, errors.New("SendName miss")
+	}
+	if this.ReOpenId == "" {
+		return ret, errors.New("ReOpenId miss")
+	}
+	if this.TotalAmount <= 0 {
+		return ret, errors.New("TotalAmount error")
+	}
+	if this.TotalNum <= 0 {
+		return ret, errors.New("TotalNum error")
+	}
+	if this.ClientIp == "" {
+		return ret, errors.New("ClientIp miss")
+	}
+	if this.ActName == "" {
+		return ret, errors.New("ActName miss")
+	}
+	if this.Remark == "" {
+		return ret, errors.New("Remark miss")
+	}
+	if this.Wishing == "" {
+		return ret, errors.New("Wishing miss")
+	}
+	vs := WXParseSignFields(this)
+	this.Sign = strings.ToUpper(vs.MD5Sign(WX_PAY_CONFIG.MCH_KEY))
+	body := strings.NewReader(this.ToXml())
+	http := xweb.NewHTTPClient(WX_PAY_HOST, WX_PAY_CONFIG.TLSConfig)
+	res, err := http.Post("/mmpaymkttransfers/sendredpack", "application/xml", body)
+	if err != nil {
+		return ret, err
+	}
+	if err := res.ToXml(&ret); err != nil {
+		return ret, err
+	}
+	if ret.ReturnCode != SUCCESS || ret.ResultCode != SUCCESS {
+		return ret, errors.New(ret.ReturnMsg)
+	}
+	return ret, nil
 }
 
 //https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=$this->appId&secret=$this->appSecret"
