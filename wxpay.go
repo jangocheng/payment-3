@@ -33,6 +33,9 @@ type WXKeyConfig struct {
 	APP_SECRET string
 	MCH_ID     string
 	MCH_KEY    string
+	CRT_PATH   string
+	KEY_PATH   string
+	CA_PATH    string
 	TLSConfig  *tls.Config
 }
 
@@ -42,6 +45,9 @@ var (
 
 func InitWXKey(conf WXKeyConfig) {
 	WX_PAY_CONFIG = conf
+	if conf.CA_PATH != "" && conf.CRT_PATH != "" && conf.KEY_PATH != "" {
+		WX_PAY_CONFIG.TLSConfig = xweb.MustLoadTLSFileConfig(conf.CA_PATH, conf.CRT_PATH, conf.KEY_PATH)
+	}
 }
 
 func WXSign(v interface{}) string {
@@ -438,6 +444,8 @@ type WXUserInfoResponse struct {
 	HeadImgURL string   `json:"headimgurl"`
 	Privilege  []string `json:"privilege"`
 	UnionId    string   `json:"unionid"`
+	GroupId    int      `json:"groupid"`
+	TagidList  []int    `json:"tagid_list"`
 }
 
 func (this WXUserInfoRequest) Get() (WXUserInfoResponse, error) {
