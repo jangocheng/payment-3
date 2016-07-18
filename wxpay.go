@@ -304,8 +304,32 @@ func WXGetAccessToken() (WXGetAccessTokenResponse, error) {
 	return ret, err
 }
 
-//公众号用户Tag
-type WXUserTag struct {
+//获得用户的tags
+type WXGetUserTagsResponse struct {
+	WXError
+	TagList []int `json:"tagid_list"`
+}
+
+func WXGetUserTags(token string) (WXGetUserTagsResponse, error) {
+	ret := WXGetUserTagsResponse{}
+	q := xweb.NewHTTPValues()
+	q.Set("access_token", token)
+	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	res, err := http.Get("/cgi-bin/tags/getidlist", q)
+	if err != nil {
+		return ret, err
+	}
+	if err := res.ToJson(&ret); err != nil {
+		return ret, err
+	}
+	if err := ret.Error(); err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+
+//公众号用户所有Tag
+type WXTag struct {
 	Id    int    `json:"id"`
 	Name  string `json:"name"`
 	Count int    `json:"count"` //此标签下粉丝数
@@ -314,7 +338,7 @@ type WXUserTag struct {
 //获得公众号用户标签列表
 type WXGetTagsResponse struct {
 	WXError
-	Tags []WXUserTag `json:"tags"`
+	Tags []WXTag `json:"tags"`
 }
 
 func WXGetTags(token string) (WXGetTagsResponse, error) {
@@ -584,6 +608,7 @@ type WXUserInfoRequest struct {
 */
 type WXUserInfoResponse struct {
 	WXError
+	Subscribe  int      `json:"subscribe"`
 	OpenId     string   `json:"openid"`
 	NickName   string   `json:"nickname"`
 	Language   string   `json:"language"`
@@ -620,6 +645,9 @@ func (this WXUserInfoRequest) Get() (WXUserInfoResponse, error) {
 	}
 	if err := ret.Error(); err != nil {
 		return ret, err
+	}
+	if ids, err := WXGetUserTags(this.AccessToken); err == nil {
+		ret.TagidList = ids.TagList
 	}
 	return ret, nil
 }
