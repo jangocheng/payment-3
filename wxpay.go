@@ -854,8 +854,8 @@ func (this WXConfigForJS) ToScript(jsticket string, url string) (template.JS, er
 
 //为jsapi支付返回给客户端用于客户端发起支付
 type WXPayReqForJS struct {
-	AppId     string `json:"appId,omitempty" sign:"true"`
-	Timestamp int64  `json:"timeStamp,omitempty" sign:"true"`
+	AppId     string `json:"-" sign:"true"`
+	Timestamp int64  `json:"timestamp,omitempty" sign:"true"`
 	Package   string `json:"package,omitempty" sign:"true"`
 	NonceStr  string `json:"nonceStr,omitempty" sign:"true"`
 	SignType  string `json:"signType,omitempty" sign:"true"`
