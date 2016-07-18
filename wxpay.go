@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/cxuhua/xweb"
 	"html/template"
-	"log"
 	"reflect"
 	"strings"
 )
@@ -843,13 +842,12 @@ func (this WXConfigForJS) ToScript(jsticket string, url string) (template.JS, er
 	if this.JSApiList == nil {
 		this.JSApiList = []string{}
 	}
-	v := WXParseSignFields(this)
+	v := xweb.NewHTTPValues()
+	v.Set("timestamp", this.Timestamp)
+	v.Set("noncestr", this.NonceStr)
 	v.Set("jsapi_ticket", jsticket)
 	v.Set("url", url)
-	log.Println(v.RawEncode())
 	this.Signature = xweb.SHA1String(v.RawEncode())
-	log.Println(v)
-	log.Println(this)
 	data, err := json.Marshal(this)
 	if err != nil {
 		return template.JS(""), err
