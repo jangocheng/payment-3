@@ -846,6 +846,7 @@ func (this WXConfigForJS) ToScript(jsticket string, url string) (template.JS, er
 	v := WXParseSignFields(this)
 	v.Set("jsapi_ticket", jsticket)
 	v.Set("url", url)
+	log.Println(v.RawEncode())
 	this.Signature = xweb.SHA1String(v.RawEncode())
 	log.Println(v)
 	log.Println(this)
