@@ -310,12 +310,26 @@ type WXGetUserTagsResponse struct {
 	TagList []int `json:"tagid_list"`
 }
 
-func WXGetUserTags(token string) (WXGetUserTagsResponse, error) {
+type WXGetUserTagsRequest struct {
+	OpenId string `json:"openid"`
+}
+
+func (this WXGetUserTagsRequest) ToJson() (string, error) {
+	data, err := json.Marshal(this)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func (this WXGetUserTagsRequest) Post(token string) (WXGetUserTagsResponse, error) {
 	ret := WXGetUserTagsResponse{}
-	q := xweb.NewHTTPValues()
-	q.Set("access_token", token)
 	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
-	res, err := http.Get("/cgi-bin/tags/getidlist", q)
+	data, err := this.ToJson()
+	if err != nil {
+		return ret, err
+	}
+	res, err := http.Post("/cgi-bin/tags/getidlist?access_token="+token, "application/json", strings.NewReader(data))
 	if err != nil {
 		return ret, err
 	}
@@ -646,7 +660,9 @@ func (this WXUserInfoRequest) Get() (WXUserInfoResponse, error) {
 	if err := ret.Error(); err != nil {
 		return ret, err
 	}
-	if ids, err := WXGetUserTags(this.AccessToken); err == nil {
+	req := WXGetUserTagsRequest{}
+	req.OpenId = ret.OpenId
+	if ids, err := req.Post(this.AccessToken); err == nil {
 		ret.TagidList = ids.TagList
 	}
 	return ret, nil
