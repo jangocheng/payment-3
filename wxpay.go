@@ -304,44 +304,6 @@ func WXGetAccessToken() (WXGetAccessTokenResponse, error) {
 	return ret, err
 }
 
-//获得用户的tags
-type WXGetUserTagsResponse struct {
-	WXError
-	TagList []int `json:"tagid_list"`
-}
-
-type WXGetUserTagsRequest struct {
-	OpenId string `json:"openid"`
-}
-
-func (this WXGetUserTagsRequest) ToJson() (string, error) {
-	data, err := json.Marshal(this)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
-func (this WXGetUserTagsRequest) Post(token string) (WXGetUserTagsResponse, error) {
-	ret := WXGetUserTagsResponse{}
-	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
-	data, err := this.ToJson()
-	if err != nil {
-		return ret, err
-	}
-	res, err := http.Post("/cgi-bin/tags/getidlist?access_token="+token, "application/json", strings.NewReader(data))
-	if err != nil {
-		return ret, err
-	}
-	if err := res.ToJson(&ret); err != nil {
-		return ret, err
-	}
-	if err := ret.Error(); err != nil {
-		return ret, err
-	}
-	return ret, nil
-}
-
 //公众号用户所有Tag
 type WXTag struct {
 	Id    int    `json:"id"`
@@ -659,11 +621,6 @@ func (this WXUserInfoRequest) Get() (WXUserInfoResponse, error) {
 	}
 	if err := ret.Error(); err != nil {
 		return ret, err
-	}
-	req := WXGetUserTagsRequest{}
-	req.OpenId = ret.OpenId
-	if ids, err := req.Post(this.AccessToken); err == nil {
-		ret.TagidList = ids.TagList
 	}
 	return ret, nil
 }
