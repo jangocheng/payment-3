@@ -564,7 +564,7 @@ func (this WXOAuth2RefreshTokenRequest) Get() (WXOAuth2RefreshTokenResponse, err
 }
 
 //拉取用户信息
-//https://api.weixin.qq.com/sns/userinfo
+//https://api.weixin.qq.com/cgi-bin/user/info
 type WXUserInfoRequest struct {
 	AccessToken string `json:"access_token" sign:"true"`
 	OpenId      string `json:"openid" sign:"true"`
@@ -612,7 +612,7 @@ func (this WXUserInfoRequest) Get() (WXUserInfoResponse, error) {
 	}
 	v := WXParseSignFields(this)
 	http := xweb.NewHTTPClient(WX_API_HOST)
-	res, err := http.Get("/sns/userinfo", v)
+	res, err := http.Get("/cgi-bin/user/info", v)
 	if err != nil {
 		return ret, err
 	}
