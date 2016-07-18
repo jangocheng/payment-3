@@ -876,6 +876,7 @@ func (this WXPayReqForJS) ToScript() (template.JS, error) {
 	s.Package = this.Package
 	s.PaySign = this.PaySign
 	s.SignType = this.SignType
+	s.Timestamp = this.Timestamp
 	data, err := json.Marshal(s)
 	if err != nil {
 		return template.JS(""), err
@@ -896,6 +897,7 @@ func NewWXPayReqScript(prepayid string) WXPayReqScript {
 	s.Package = d.Package
 	s.PaySign = d.PaySign
 	s.SignType = d.SignType
+	s.Timestamp = d.Timestamp
 	return s
 }
 
