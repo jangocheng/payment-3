@@ -862,14 +862,15 @@ type WXPayReqForJS struct {
 	PaySign   string `json:"paySign,omitempty" sign:"false"`
 }
 
+type WXPayReqScript struct {
+	Timestamp int64  `json:"timestamp,omitempty"`
+	Package   string `json:"package,omitempty"`
+	NonceStr  string `json:"nonceStr,omitempty"`
+	SignType  string `json:"signType,omitempty"`
+	PaySign   string `json:"paySign,omitempty"`
+}
+
 func (this WXPayReqForJS) ToScript() (template.JS, error) {
-	type WXPayReqScript struct {
-		Timestamp int64  `json:"timestamp,omitempty"`
-		Package   string `json:"package,omitempty"`
-		NonceStr  string `json:"nonceStr,omitempty"`
-		SignType  string `json:"signType,omitempty"`
-		PaySign   string `json:"paySign,omitempty"`
-	}
 	s := WXPayReqScript{}
 	s.NonceStr = this.NonceStr
 	s.Package = this.Package
@@ -880,6 +881,22 @@ func (this WXPayReqForJS) ToScript() (template.JS, error) {
 		return template.JS(""), err
 	}
 	return template.JS(data), nil
+}
+
+func NewWXPayReqScript(prepayid string) WXPayReqScript {
+	d := WXPayReqForJS{}
+	d.AppId = WX_PAY_CONFIG.APP_ID
+	d.Package = "prepay_id=" + prepayid
+	d.NonceStr = RandStr()
+	d.Timestamp = TimeNow()
+	d.SignType = "MD5"
+	d.PaySign = WXSign(d)
+	s := WXPayReqScript{}
+	s.NonceStr = d.NonceStr
+	s.Package = d.Package
+	s.PaySign = d.PaySign
+	s.SignType = d.SignType
+	return s
 }
 
 //新建jsapi支付返回
