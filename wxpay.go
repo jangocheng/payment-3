@@ -854,8 +854,8 @@ func (this WXConfigForJS) ToScript(jsticket string, url string) (template.JS, er
 
 //为jsapi支付返回给客户端用于客户端发起支付
 type WXPayReqForJS struct {
-	AppId     string `json:"-" sign:"true"`
-	Timestamp int64  `json:"timestamp,omitempty" sign:"true"`
+	AppId     string `json:"appId,omitempty" sign:"true"`
+	Timestamp int64  `json:"timeStamp,omitempty" sign:"true"`
 	Package   string `json:"package,omitempty" sign:"true"`
 	NonceStr  string `json:"nonceStr,omitempty" sign:"true"`
 	SignType  string `json:"signType,omitempty" sign:"true"`
@@ -863,7 +863,19 @@ type WXPayReqForJS struct {
 }
 
 func (this WXPayReqForJS) ToScript() (template.JS, error) {
-	data, err := json.Marshal(this)
+	type WXPayReqScript struct {
+		Timestamp int64  `json:"timestamp,omitempty"`
+		Package   string `json:"package,omitempty"`
+		NonceStr  string `json:"nonceStr,omitempty"`
+		SignType  string `json:"signType,omitempty"`
+		PaySign   string `json:"paySign,omitempty"`
+	}
+	s := WXPayReqScript{}
+	s.NonceStr = this.NonceStr
+	s.Package = this.Package
+	s.PaySign = this.PaySign
+	s.SignType = this.SignType
+	data, err := json.Marshal(s)
 	if err != nil {
 		return template.JS(""), err
 	}
