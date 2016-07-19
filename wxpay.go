@@ -134,6 +134,44 @@ func (this WXError) Error() error {
 	return errors.New(fmt.Sprintf("ERROR:%d,%s", this.ErrCode, this.ErrMsg))
 }
 
+type WXMenuButton struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+type WXCreateMenuRequest struct {
+	Button []WXMenuButton `json:"button"`
+}
+
+func (this WXCreateMenuRequest) ToJson() string {
+	data, err := json.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+func (this WXCreateMenuRequest) Post(token string) error {
+	ret := WXError{}
+	if len(this.Button) == 0 {
+		return errors.New("menus null")
+	}
+	body := strings.NewReader(this.ToJson())
+	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	res, err := http.Post("/cgi-bin/menu/create?access_token="+token, "application/json", body)
+	if err != nil {
+		return err
+	}
+	if err := res.ToJson(&ret); err != nil {
+		return err
+	}
+	if ret.ErrCode != 0 {
+		return errors.New(ret.ErrMsg)
+	}
+	return nil
+}
+
 type WXGetAccessTokenResponse struct {
 	WXError
 	AccessToken string `json:"access_token"`
@@ -563,7 +601,7 @@ func (this WXOAuth2RefreshTokenRequest) Get() (WXOAuth2RefreshTokenResponse, err
 	return ret, nil
 }
 
-//拉取用户信息
+//拉取用户信息 AccessToken并非网页授权token
 //https://api.weixin.qq.com/cgi-bin/user/info
 type WXUserInfoRequest struct {
 	AccessToken string `json:"access_token" sign:"true"`
@@ -571,32 +609,22 @@ type WXUserInfoRequest struct {
 	Lang        string `json:"lang" sign:"true"`
 }
 
-/*
-{"openid":"oW2MRwIqhll39pDiOdpsAyrmT0gU",
-"nickname":"徐华",
-"sex":1,
-"language":"zh_CN",
-"city":"成都",
-"province":"四川",
-"country":"中国",
-"headimgurl":"http:\/\/wx.qlogo.cn\/mmopen\/mWfv8OZyiccr8DSUkdkhSq4lopNL9wC614Siao90qq0XIwIrt0twI5jicLgLz4KYWVW2JntDoQDj73Ho3BK1znuykLT2BS9ZSCI\/0",
-"privilege":[]}
-*/
 type WXUserInfoResponse struct {
 	WXError
-	Subscribe  int      `json:"subscribe"`
-	OpenId     string   `json:"openid"`
-	NickName   string   `json:"nickname"`
-	Language   string   `json:"language"`
-	Sex        int      `json:"sex"`
-	Province   string   `json:"province"`
-	City       string   `json:"city"`
-	Country    string   `json:"country"`
-	HeadImgURL string   `json:"headimgurl"`
-	Privilege  []string `json:"privilege"`
-	UnionId    string   `json:"unionid"`
-	GroupId    int      `json:"groupid"`
-	TagidList  []int    `json:"tagid_list"`
+	SubscribeTime int64  `json:"subscribe_time"` //关注时间
+	Subscribe     int    `json:"subscribe"`      //是否关注
+	OpenId        string `json:"openid"`
+	NickName      string `json:"nickname"`
+	Language      string `json:"language"`
+	Sex           int    `json:"sex"`
+	Province      string `json:"province"`
+	City          string `json:"city"`
+	Remark        string `json:"remark"` //备注
+	Country       string `json:"country"`
+	HeadImgURL    string `json:"headimgurl"`
+	UnionId       string `json:"unionid"`
+	GroupId       int    `json:"groupid"`
+	TagidList     []int  `json:"tagid_list"`
 }
 
 func (this WXUserInfoRequest) Get() (WXUserInfoResponse, error) {
@@ -826,6 +854,7 @@ func (this WXPayResultResponse) ToXML() string {
 	return string(data)
 }
 
+//恶心的微信签名用noncestr,脚本里用nonceStr
 type WXConfigForJS struct {
 	Debug     bool     `json:"debug" sign:"false"`
 	AppId     string   `json:"appId" sign:"false"`
