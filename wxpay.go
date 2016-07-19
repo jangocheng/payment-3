@@ -334,8 +334,11 @@ func (this WXRedPackageRequest) Post() (WXRedPackageResponse, error) {
 	if err := res.ToXml(&ret); err != nil {
 		return ret, err
 	}
-	if ret.ReturnCode != SUCCESS || ret.ResultCode != SUCCESS {
-		return ret, errors.New(ret.ReturnMsg)
+	if ret.ReturnCode != SUCCESS {
+		return ret, errors.New("1," + ret.ReturnCode + ":" + ret.ReturnMsg)
+	}
+	if ret.ResultCode != SUCCESS {
+		return ret, errors.New("2," + ret.ResultCode + ":" + ret.ErrCodeDes)
 	}
 	return ret, nil
 }
