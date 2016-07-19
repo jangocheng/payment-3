@@ -172,6 +172,25 @@ func (this WXCreateMenuRequest) Post(token string) error {
 	return nil
 }
 
+//https://api.weixin.qq.com/cgi-bin/menu/delete?access_token
+func WXDeleteMenu(token string) error {
+	ret := WXError{}
+	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	q := xweb.NewHTTPValues()
+	q.Set("access_token", token)
+	res, err := http.Get("/cgi-bin/menu/delete", q)
+	if err != nil {
+		return err
+	}
+	if err := res.ToJson(&ret); err != nil {
+		return err
+	}
+	if ret.ErrCode != 0 {
+		return errors.New(ret.ErrMsg)
+	}
+	return nil
+}
+
 type WXGetAccessTokenResponse struct {
 	WXError
 	AccessToken string `json:"access_token"`
