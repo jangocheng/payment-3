@@ -158,7 +158,7 @@ func (this WXCreateMenuRequest) Post(token string) error {
 		return errors.New("menus null")
 	}
 	body := strings.NewReader(this.ToJson())
-	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	http := xweb.NewHTTPClient(WX_API_HOST)
 	res, err := http.Post("/cgi-bin/menu/create?access_token="+token, "application/json", body)
 	if err != nil {
 		return err
@@ -175,7 +175,7 @@ func (this WXCreateMenuRequest) Post(token string) error {
 //https://api.weixin.qq.com/cgi-bin/menu/delete?access_token
 func WXDeleteMenu(token string) error {
 	ret := WXError{}
-	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	http := xweb.NewHTTPClient(WX_API_HOST)
 	q := xweb.NewHTTPValues()
 	q.Set("access_token", token)
 	res, err := http.Get("/cgi-bin/menu/delete", q)
@@ -347,7 +347,7 @@ func WXGetAccessToken() (WXGetAccessTokenResponse, error) {
 	q.Set("grant_type", "client_credential")
 	q.Set("appid", WX_PAY_CONFIG.APP_ID)
 	q.Set("secret", WX_PAY_CONFIG.APP_SECRET)
-	c := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	c := xweb.NewHTTPClient(WX_API_HOST)
 	res, err := c.Get("/cgi-bin/token", q)
 	if err != nil {
 		return ret, err
@@ -378,7 +378,7 @@ func WXGetTags(token string) (WXGetTagsResponse, error) {
 	ret := WXGetTagsResponse{}
 	q := xweb.NewHTTPValues()
 	q.Set("access_token", token)
-	http := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	http := xweb.NewHTTPClient(WX_API_HOST)
 	res, err := http.Get("/cgi-bin/tags/get", q)
 	if err != nil {
 		return ret, err
@@ -408,7 +408,7 @@ func WXGetJSApiTicket(token string) (WXGetJSApiTicketResponse, error) {
 	q := xweb.NewHTTPValues()
 	q.Set("access_token", token)
 	q.Set("type", "jsapi")
-	c := xweb.NewHTTPClient("https://api.weixin.qq.com")
+	c := xweb.NewHTTPClient(WX_API_HOST)
 	res, err := c.Get("/cgi-bin/ticket/getticket", q)
 	if err != nil {
 		return ret, err
