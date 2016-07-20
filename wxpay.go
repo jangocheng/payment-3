@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"github.com/cxuhua/xweb"
 	"html/template"
+	"io"
 	"reflect"
 	"strings"
 )
@@ -132,6 +134,113 @@ func (this WXError) Error() error {
 		return nil
 	}
 	return errors.New(fmt.Sprintf("ERROR:%d,%s", this.ErrCode, this.ErrMsg))
+}
+
+//发送消息
+const (
+	MSG_TEXT  = "text"
+	MSG_IMAGE = "image"
+	MSG_NEW   = "news"
+)
+
+type CustomMsg struct {
+	ToUser  string        `json:"touser"`
+	MsgType string        `json:"msgtype"`
+	Text    CustomMsgText `json:"text"`
+}
+
+func (this CustomMsg) ToReader() (io.Reader, error) {
+	this.MsgType = MSG_TEXT
+	if this.ToUser == "" {
+		return nil, errors.New("ToUser empty")
+	}
+	if this.Text.Content == "" {
+		return nil, errors.New("msg content null")
+	}
+	data, err := json.Marshal(this)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
+}
+
+type CustomMsgText struct {
+	Content string `json:"content"`
+}
+
+func WXSendMessage(token string, openId string, content string) error {
+	ret := WXError{}
+	msg := CustomMsg{}
+	msg.ToUser = openId
+	msg.Text.Content = content
+	http := xweb.NewHTTPClient(WX_API_HOST)
+	body, err := msg.ToReader()
+	if err != nil {
+		return err
+	}
+	res, err := http.Post("/cgi-bin/message/custom/send?access_token="+token, "application/json", body)
+	if err != nil {
+		return err
+	}
+	if err := res.ToJson(&ret); err != nil {
+		return err
+	}
+	if ret.ErrCode != 0 {
+		return errors.New(ret.ErrMsg)
+	}
+	return nil
+}
+
+//为用户添加或者删除标签
+type WXManagerUserTagRequest struct {
+	OpenIdList []string `json:"openid_list"`
+	TagId      int      `json:"tagid"`
+}
+
+func (this WXManagerUserTagRequest) ToJson() string {
+	data, err := json.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+func (this WXManagerUserTagRequest) Set(token string, openIds []string, tagId int) error {
+	return this.post(token, openIds, tagId, false)
+}
+
+func (this WXManagerUserTagRequest) Del(token string, openIds []string, tagId int) error {
+	return this.post(token, openIds, tagId, true)
+}
+
+func (this WXManagerUserTagRequest) post(token string, openIds []string, tagId int, del bool) error {
+	ret := WXError{}
+	if len(openIds) == 0 || tagId == 0 {
+		return errors.New("args error")
+	}
+	for _, v := range openIds {
+		this.OpenIdList = append(this.OpenIdList, v)
+	}
+	this.TagId = tagId
+	body := strings.NewReader(this.ToJson())
+	http := xweb.NewHTTPClient(WX_API_HOST)
+	path := "/cgi-bin/tags/members/%s?access_token=" + token
+	if del {
+		path = fmt.Sprintf(path, "batchtagging")
+	} else {
+		path = fmt.Sprintf(path, "batchuntagging")
+	}
+	res, err := http.Post(path, "application/json", body)
+	if err != nil {
+		return err
+	}
+	if err := res.ToJson(&ret); err != nil {
+		return err
+	}
+	if ret.ErrCode != 0 {
+		return errors.New(ret.ErrMsg)
+	}
+	return nil
 }
 
 type WXMenuButton struct {
