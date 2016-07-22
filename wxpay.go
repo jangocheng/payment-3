@@ -136,6 +136,53 @@ func (this WXError) Error() error {
 	return errors.New(fmt.Sprintf("ERROR:%d,%s", this.ErrCode, this.ErrMsg))
 }
 
+//二维码生产
+type WXQRCodeCreateRequest struct {
+	ActionName string `json:"action_name"`
+	ActionInfo struct {
+		Scene struct {
+			SceneStr string `json:"scene_str"`
+		} `json:"scene"`
+	} `json:"action_info"`
+}
+
+func (this WXQRCodeCreateRequest) ToReader() (io.Reader, error) {
+	data, err := json.Marshal(this)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
+}
+
+type WXQRCodeCreateResponse struct {
+	WXError
+	Ticket        string `json:"ticket"`
+	ExpireSeconds int    `json:"expire_seconds"`
+	URL           string `json:"url"`
+}
+
+func (this WXQRCodeCreateRequest) Post(token string, info string) (WXQRCodeCreateResponse, error) {
+	ret := WXQRCodeCreateResponse{}
+	this.ActionName = "QR_LIMIT_STR_SCENE"
+	this.ActionInfo.Scene.SceneStr = info
+	http := xweb.NewHTTPClient(WX_API_HOST)
+	body, err := this.ToReader()
+	if err != nil {
+		return ret, err
+	}
+	res, err := http.Post("/cgi-bin/qrcode/create?access_token="+token, "application/json", body)
+	if err != nil {
+		return ret, err
+	}
+	if err := res.ToJson(&ret); err != nil {
+		return ret, err
+	}
+	if ret.ErrCode != 0 {
+		return ret, errors.New(ret.ErrMsg)
+	}
+	return ret, nil
+}
+
 //发送消息
 const (
 	MSG_TEXT  = "text"
