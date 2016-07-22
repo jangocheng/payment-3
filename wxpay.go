@@ -205,23 +205,19 @@ func (this WXManagerUserTagRequest) ToJson() string {
 	return string(data)
 }
 
-func (this WXManagerUserTagRequest) Set(token string, openIds []string, tagId int) error {
-	return this.post(token, openIds, tagId, false)
+func (this WXManagerUserTagRequest) Set(token string) error {
+	return this.post(token, false)
 }
 
-func (this WXManagerUserTagRequest) Del(token string, openIds []string, tagId int) error {
-	return this.post(token, openIds, tagId, true)
+func (this WXManagerUserTagRequest) Del(token string) error {
+	return this.post(token, true)
 }
 
-func (this WXManagerUserTagRequest) post(token string, openIds []string, tagId int, del bool) error {
+func (this WXManagerUserTagRequest) post(token string, del bool) error {
 	ret := WXError{}
-	if len(openIds) == 0 || tagId == 0 {
+	if len(this.OpenIdList) == 0 || this.TagId == 0 {
 		return errors.New("args error")
 	}
-	for _, v := range openIds {
-		this.OpenIdList = append(this.OpenIdList, v)
-	}
-	this.TagId = tagId
 	body := strings.NewReader(this.ToJson())
 	http := xweb.NewHTTPClient(WX_API_HOST)
 	path := "/cgi-bin/tags/members/%s?access_token=" + token
