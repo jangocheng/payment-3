@@ -221,7 +221,7 @@ func (this WXManagerUserTagRequest) post(token string, del bool) error {
 	body := strings.NewReader(this.ToJson())
 	http := xweb.NewHTTPClient(WX_API_HOST)
 	path := "/cgi-bin/tags/members/%s?access_token=" + token
-	if del {
+	if !del {
 		path = fmt.Sprintf(path, "batchtagging")
 	} else {
 		path = fmt.Sprintf(path, "batchuntagging")
