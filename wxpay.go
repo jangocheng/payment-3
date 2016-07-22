@@ -798,7 +798,7 @@ type WXUserInfoResponse struct {
 	HeadImgURL    string `json:"headimgurl"`
 	UnionId       string `json:"unionid"`
 	GroupId       int    `json:"groupid"`
-	TagidList     []int  `json:"tagid_list"`
+	TagIdList     []int  `json:"tagid_list"`
 }
 
 func (this WXUserInfoRequest) Get() (WXUserInfoResponse, error) {
