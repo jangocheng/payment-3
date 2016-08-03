@@ -672,7 +672,7 @@ type WXRefundResponse struct {
 	AppId              string   `xml:"appid" sign:"true"`
 	CashFee            string   `xml:"cash_fee,omitempty" sign:"true"`
 	CashRefundFee      string   `xml:"cash_refund_fee,omitempty" sign:"true"`
-	device_info        string   `xml:"device_info,omitempty" sign:"true"`
+	DeviceInfo         string   `xml:"device_info,omitempty" sign:"true"`
 	ErrCode            string   `xml:"err_code" sign:"true"`
 	ErrCodeDes         string   `xml:"err_code_des" sign:"true"`
 	FeeType            string   `xml:"fee_type,omitempty" sign:"true"`
