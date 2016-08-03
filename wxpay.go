@@ -669,23 +669,23 @@ func (this WXRefundRequest) ToXML() string {
 
 type WXRefundResponse struct {
 	XMLName            struct{} `xml:"xml"`
-	AppId              string   `xml:"appid" sign:"true"`
+	AppId              string   `xml:"appid,omitempty" sign:"true"`
 	CashFee            string   `xml:"cash_fee,omitempty" sign:"true"`
 	CashRefundFee      string   `xml:"cash_refund_fee,omitempty" sign:"true"`
 	DeviceInfo         string   `xml:"device_info,omitempty" sign:"true"`
-	ErrCode            string   `xml:"err_code" sign:"true"`
-	ErrCodeDes         string   `xml:"err_code_des" sign:"true"`
+	ErrCode            string   `xml:"err_code,omitempty" sign:"true"`
+	ErrCodeDes         string   `xml:"err_code_des,omitempty" sign:"true"`
 	FeeType            string   `xml:"fee_type,omitempty" sign:"true"`
-	MchId              string   `xml:"mch_id" sign:"true"`
-	NonceStr           string   `xml:"nonce_str" sign:"true"`
+	MchId              string   `xml:"mch_id,omitempty" sign:"true"`
+	NonceStr           string   `xml:"nonce_str,omitempty" sign:"true"`
 	OutRefundNO        string   `xml:"out_refund_no,omitempty" sign:"true"`
 	OutTradeNO         string   `xml:"out_trade_no,omitempty" sign:"true"`
 	RefundChannel      string   `xml:"refund_channel,omitempty" sign:"true"`
 	RefundFee          string   `xml:"refund_fee,omitempty" sign:"true"`
 	RefundId           string   `xml:"refund_id,omitempty" sign:"true"`
-	ResultCode         string   `xml:"result_code" sign:"true"`
-	ReturnCode         string   `xml:"return_code" sign:"true"`
-	ReturnMsg          string   `xml:"return_msg" sign:"true"`
+	ResultCode         string   `xml:"result_code,omitempty" sign:"true"`
+	ReturnCode         string   `xml:"return_code,omitempty" sign:"true"`
+	ReturnMsg          string   `xml:"return_msg,omitempty" sign:"true"`
 	SettlementTotalFee string   `xml:"settlement_total_fee,omitempty" sign:"true"`
 	Sign               string   `xml:"sign" sign:"false"`
 	TotalFee           string   `xml:"total_fee,omitempty" sign:"true"`
