@@ -407,8 +407,11 @@ func (this WXTransfersRequest) Post() (WXTransfersResponse, error) {
 	if err := res.ToXml(&ret); err != nil {
 		return ret, err
 	}
-	if ret.ReturnCode != SUCCESS || ret.ResultCode != SUCCESS {
+	if ret.ReturnCode != SUCCESS {
 		return ret, errors.New(ret.ReturnMsg)
+	}
+	if ret.ResultCode != SUCCESS {
+		return ret, errors.New(ret.ErrCodeDes)
 	}
 	return ret, nil
 }
@@ -668,17 +671,18 @@ func (this WXRefundRequest) ToXML() string {
 }
 
 /*
-<xml><return_code><![CDATA[SUCCESS]]></return_code>
+<xml>
+<return_code><![CDATA[SUCCESS]]></return_code>
 <return_msg><![CDATA[OK]]></return_msg>
 <appid><![CDATA[wx21b3ee9bd6d16364]]></appid>
 <mch_id><![CDATA[1230573602]]></mch_id>
-<nonce_str><![CDATA[5kkG12G5X89RL7Tf]]></nonce_str>
-<sign><![CDATA[0B313EAB96A3560493D7DDFAFDB2087B]]></sign>
+<nonce_str><![CDATA[WDrQTCrHR0KuJVyC]]></nonce_str>
+<sign><![CDATA[71B70EE065F17DB4BFDF21D40B4346C9]]></sign>
 <result_code><![CDATA[SUCCESS]]></result_code>
-<transaction_id><![CDATA[4003952001201608030505499020]]></transaction_id>
-<out_trade_no><![CDATA[2016080384151667960]]></out_trade_no>
-<out_refund_no><![CDATA[2016080384181063522]]></out_refund_no>
-<refund_id><![CDATA[2003952001201608030361172806]]></refund_id>
+<transaction_id><![CDATA[4003952001201608030506918893]]></transaction_id>
+<out_trade_no><![CDATA[2016080384874864043]]></out_trade_no>
+<out_refund_no><![CDATA[2016080384902087406]]></out_refund_no>
+<refund_id><![CDATA[2003952001201608030360901594]]></refund_id>
 <refund_channel><![CDATA[]]></refund_channel>
 <refund_fee>3900</refund_fee>
 <coupon_refund_fee>0</coupon_refund_fee>
@@ -754,11 +758,11 @@ func (this WXRefundRequest) Post() (WXRefundResponse, error) {
 	if !ret.SignValid() {
 		return ret, errors.New("sign error")
 	}
-	if ret.ErrCode != SUCCESS {
-		return ret, errors.New(ret.ErrCodeDes)
-	}
 	if ret.ReturnCode != SUCCESS {
 		return ret, errors.New(ret.ReturnMsg)
+	}
+	if ret.ResultCode != SUCCESS {
+		return ret, errors.New(fmt.Sprintf("code:%d,error:%d", ret.ErrCode, ret.ErrCodeDes))
 	}
 	return ret, nil
 }
