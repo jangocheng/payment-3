@@ -703,11 +703,8 @@ func (this WXRefundRequest) Post() (WXRefundResponse, error) {
 	this.MchId = WX_PAY_CONFIG.MCH_ID
 	this.OPUserId = WX_PAY_CONFIG.MCH_ID
 	this.NonceStr = RandStr()
-	if this.TransactionId == "" {
-		panic(errors.New("TransactionId miss"))
-	}
-	if this.OutTradeNO == "" {
-		panic(errors.New("OutTradeNO miss"))
+	if this.TransactionId == "" && this.OutTradeNO == "" {
+		panic(errors.New("TransactionId or OutTradeNO miss"))
 	}
 	if this.OutRefundNO == "" {
 		panic(errors.New("OutRefundNO miss"))
@@ -732,6 +729,12 @@ func (this WXRefundRequest) Post() (WXRefundResponse, error) {
 	}
 	if !ret.SignValid() {
 		return ret, errors.New("sign error")
+	}
+	if ret.ErrCode != SUCCESS {
+		return ret, errors.New(ret.ErrCodeDes)
+	}
+	if ret.ReturnCode != SUCCESS {
+		return ret, errors.New(ret.ReturnMsg)
 	}
 	return ret, nil
 }
