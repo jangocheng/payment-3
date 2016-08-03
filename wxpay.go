@@ -667,6 +667,28 @@ func (this WXRefundRequest) ToXML() string {
 	return string(data)
 }
 
+/*
+<xml><return_code><![CDATA[SUCCESS]]></return_code>
+<return_msg><![CDATA[OK]]></return_msg>
+<appid><![CDATA[wx21b3ee9bd6d16364]]></appid>
+<mch_id><![CDATA[1230573602]]></mch_id>
+<nonce_str><![CDATA[5kkG12G5X89RL7Tf]]></nonce_str>
+<sign><![CDATA[0B313EAB96A3560493D7DDFAFDB2087B]]></sign>
+<result_code><![CDATA[SUCCESS]]></result_code>
+<transaction_id><![CDATA[4003952001201608030505499020]]></transaction_id>
+<out_trade_no><![CDATA[2016080384151667960]]></out_trade_no>
+<out_refund_no><![CDATA[2016080384181063522]]></out_refund_no>
+<refund_id><![CDATA[2003952001201608030361172806]]></refund_id>
+<refund_channel><![CDATA[]]></refund_channel>
+<refund_fee>3900</refund_fee>
+<coupon_refund_fee>0</coupon_refund_fee>
+<total_fee>3900</total_fee>
+<cash_fee>3900</cash_fee>
+<coupon_refund_count>0</coupon_refund_count>
+<cash_refund_fee>3900</cash_refund_fee>
+</xml>
+*/
+
 type WXRefundResponse struct {
 	XMLName            struct{} `xml:"xml"`
 	AppId              string   `xml:"appid,omitempty" sign:"true"`
@@ -690,6 +712,8 @@ type WXRefundResponse struct {
 	Sign               string   `xml:"sign" sign:"false"`
 	TotalFee           string   `xml:"total_fee,omitempty" sign:"true"`
 	TransactionId      string   `xml:"transaction_id,omitempty" sign:"true"`
+	CouponRefundFee    string   `xml:"coupon_refund_fee,omitempty" sign:"true"`
+	CouponRefundCount  string   `xml:"coupon_refund_count,omitempty" sign:"true"`
 }
 
 func (this WXRefundResponse) SignValid() bool {
