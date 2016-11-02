@@ -216,7 +216,7 @@ func (this UnionQueryOrderRequest) Post() (UnionQueryOrderResponse, error) {
 	if err != nil {
 		return ret, err
 	}
-	xweb.MapFormType(&ret, uv, nil, nil)
+	xweb.MapFormBindType(&ret, uv, nil, nil, nil)
 	return ret, ret.IsError()
 }
 
@@ -336,6 +336,6 @@ func (this UnionConsumeRequest) Post() (UnionConsumeResponse, error) {
 	if err != nil {
 		return ret, err
 	}
-	xweb.MapFormType(&ret, uv, nil, nil)
+	xweb.MapFormBindType(&ret, uv, nil, nil, nil)
 	return ret, ret.IsError()
 }

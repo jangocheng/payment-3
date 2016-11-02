@@ -366,7 +366,7 @@ func NewAPPayResultNotifyArgs(req *http.Request) (APPayResultNotifyArgs, error) 
 	if err != nil {
 		return args, err
 	}
-	xweb.MapFormType(&args, form, nil, nil)
+	xweb.MapFormBindType(&args, form, nil, nil, nil)
 	if err := args.IsError(); err != nil {
 		return args, err
 	}
