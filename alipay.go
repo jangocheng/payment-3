@@ -136,12 +136,13 @@ const (
 
 //TradeStatus
 const (
-	WAIT_BUYER_PAY = "WAIT_BUYER_PAY"
-	TRADE_CLOSED   = "TRADE_CLOSED"
-	TRADE_SUCCESS  = "TRADE_SUCCESS"
-	TRADE_FINISHED = "TRADE_FINISHED"
-	REFUND_SUCCESS = "REFUND_SUCCESS"
-	REFUND_CLOSED  = "REFUND_CLOSED"
+	WAIT_BUYER_PAY  = "WAIT_BUYER_PAY"
+	TRADE_CLOSED    = "TRADE_CLOSED"
+	TRADE_SUCCESS   = "TRADE_SUCCESS"
+	TRADE_FINISHED  = "TRADE_FINISHED"
+	REFUND_SUCCESS  = "REFUND_SUCCESS"
+	REFUND_CLOSED   = "REFUND_CLOSED"
+	TRADE_NOT_EXIST = "TRADE_NOT_EXIST"
 )
 
 //https://mapi.alipay.com/gateway.do?
@@ -258,6 +259,9 @@ func (this APPayQueryOrder) Get() (APPayQueryOrderResponse, error) {
 	}
 	if err := res.ToXml(&ret); err != nil {
 		return ret, err
+	}
+	if ret.IsSuccess != "T" {
+		return ret, nil
 	}
 	if ret.Sign != APMD5Sign(ret) {
 		return ret, errors.New("sign data error")
