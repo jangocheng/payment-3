@@ -3,6 +3,7 @@ package payment
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -498,7 +499,86 @@ func (this WXRedPackageRequest) Post() (WXRedPackageResponse, error) {
 	return ret, nil
 }
 
-//https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=$this->appId&secret=$this->appSecret"
+// 获取小程序openId
+type WXAppGetOpenIdResponse struct {
+	WXError
+	OpenId     string `json:"openid"`
+	SessionKey string `json:"session_key"`
+}
+
+// https://api.weixin.qq.com/sns/jscode2session?appid=APPID&secret=SECRET&js_code=JSCODE&grant_type=authorization_code
+func WXAppGetSessionKey(jscode string) (WXAppGetOpenIdResponse, error) {
+	ret := WXAppGetOpenIdResponse{}
+	q := xweb.NewHTTPValues()
+	q.Set("js_code", jscode)
+	q.Set("grant_type", "authorization_code")
+	q.Set("appid", WX_PAY_CONFIG.APP_ID)
+	q.Set("secret", WX_PAY_CONFIG.APP_SECRET)
+	c := xweb.NewHTTPClient(WX_API_HOST)
+	res, err := c.Get("/sns/jscode2session", q)
+	if err != nil {
+		return ret, err
+	}
+	if err := res.ToJson(&ret); err != nil {
+		return ret, err
+	}
+	if err := ret.Error(); err != nil {
+		return ret, err
+	}
+	return ret, err
+}
+
+//{
+//"openId":"oUzzq0GSPdp2XEmi7l5g1y8jnGX8",
+//"nickName":"芒果玛奇朵",
+//"gender":1,
+//"language":"zh_CN",
+//"city":"Panzhihua",
+//"province":"Sichuan",
+//"country":"CN",
+//"avatarUrl":"http://wx.qlogo.cn/mmopen/vi_3"
+//}
+
+type EncryptedInfo struct {
+	OpenId    string `json:"openId"`
+	NickName  string `json:"nickName"`
+	Gender    int    `json:"gender"`
+	Language  string `json:"language"`
+	City      string `json:"city"`
+	Province  string `json:"province"`
+	Country   string `json:"country"`
+	AvatarUrl string `json:"avatarUrl"`
+}
+
+func WXAppDecodeEncryptedData(skey string, siv string, sdata string) (EncryptedInfo, error) {
+	info := EncryptedInfo{}
+	data, err := base64.StdEncoding.DecodeString(sdata)
+	if err != nil {
+		return info, err
+	}
+	iv, err := base64.StdEncoding.DecodeString(siv)
+	if err != nil {
+		return info, err
+	}
+	key, err := base64.StdEncoding.DecodeString(skey)
+	if err != nil {
+		return info, err
+	}
+	aes, err := xweb.NewAESChpher(key)
+	if err != nil {
+		return info, err
+	}
+	idata, err := xweb.AesDecryptWithIV(aes, data, iv)
+	if err != nil {
+		return info, err
+	}
+	if err := json.Unmarshal(idata, &info); err != nil {
+		return info, err
+	}
+	return info, nil
+}
+
+// https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=$this->appId&secret=$this->appSecret"
 func WXGetAccessToken() (WXGetAccessTokenResponse, error) {
 	ret := WXGetAccessTokenResponse{}
 	q := xweb.NewHTTPValues()

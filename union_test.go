@@ -1,10 +1,71 @@
 package payment
 
 import (
-	"encoding/xml"
+	// "crypto/aes"
+	// "crypto/cipher"
+	// "encoding/base64"
+	// "github.com/cxuhua/xweb"
 	"log"
 	"testing"
 )
+
+func TestWXAppGetOpenId(t *testing.T) {
+
+	WX_PAY_CONFIG.APP_ID = "wx69bff98e03bdadb4"
+	WX_PAY_CONFIG.APP_SECRET = "474af7364fcdc681d5d1b2607f622521"
+
+	// res1, err := WXGetAccessToken()
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// log.Println(res1)
+
+	// s := `UmQIEHpaqBbDvwm35CoQnfZrQaL5JO5Hvuw7sQk2hmwFPEpRjPV3VA6rMX1W1pH23pbwzhNb+JchirCyjm9IVbjoEuH5mCO8+kzMiVpcbgVoyIcfP+eP6zTLau+S0bHVIXfJXTv4DGdV+yUmo02vdR2E+lnlV47c/H9XABei/h6M/QNPliGYvZTEJmbkoaVOY/FwbP1XJbaCKCzQOk7PgSvsqeUAsthnpw2rZGEH8H+zoT6jmyENpjnA4jA8dc4hcZxY3AODP5tqOtp8ISPwkJrMssxyXa56HCisdmyaXWlySdtqzgkAHsYnCU34mCAuqWqiS9zK/30bQo5KlSBFRiMBCuv2gk+1evqcQQbD55Zk62yQOu6KhMe1TbOa5YDyb7FHnVLo4lfTF9ZI5TUILc4yMEX89wgvyXCAFM/AqsJsbQ/BRpvDmp4c2dwAGIXWNzVFLHV2dlCViwAAYMrrlXiCAmsRh3B9pPl9vHtc8iA=`
+
+	s := "X0DsgCvFbgv1btz6BAMBgvZBxMWKf3VYtbpFiEua+wWkkI15/FhWaGSz38p6gCaLIy6/1GDFUkqcXeliyMpTYkwdocoYUlmaLFWHXGVjCH8TjpA4pmCm6zp/KxhvSn/iIMR2xIuCiOdoivtbvHIemXm9g/bwrzLT8kEuIE/SnOdbXhhxdKhfiQPya1cPzapfKaqHI0r7p1OnEBj59o/L3Jl2054UV+TDLxIWPJpKTvzyxKg8/p2O7UCN5MT/iYTSVr8bRk2OWgbRnJGBsknYvXxwOhcJGHf2fQ4I9ZbVGc565uVk3Wtp2etVGo5jJ8dY7IRB0H9K9/EaaNPDZRkjUk0YK226Nqlno4Gxr3TqDcyVZLpFs0HrfIRQKB6mOLaOO33ba0pnPEHAIi+tdhpp9I4NZD8wdcqMXq1AmMw93chJww7RyrUm6Ku0wtKxZbG/ZPN4+EXNqLdVBJ8KIdj+u5aAkqhNj1G9wP+uW/Pt5Eg="
+	iv := "EUZ/7dH5F41dUViVVLY73w=="
+	sessionKey := "OXEqIUKiWhsuY3mLJLudsQ=="
+
+	log.Println(WXAppDecodeEncryptedData(sessionKey, iv, s))
+
+	// // res2, err := WXAppGetSessionKey(code)
+	// // if err != nil {
+	// // 	t.Fatal(err)
+	// // }
+	// // log.Println("sessionKey", res2.SessionKey)
+	// data, err := base64.StdEncoding.DecodeString(s)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// log.Println("data", data)
+	// aesKey, err := base64.StdEncoding.DecodeString(sessionKey)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// log.Println("aesKey", aesKey)
+	// ivdata, err := base64.StdEncoding.DecodeString(iv)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// log.Println("ivdata", ivdata)
+
+	// aes, _ := xweb.NewAESChpher(aesKey)
+	// d, err := xweb.AesDecryptWithIV(aes, data, ivdata)
+
+	// log.Println(string(d), err)
+
+	// log.Println(res2.OpenId)
+	// log.Println(res2.SessionKey)
+
+	// uq := WXUserInfoRequest{}
+	// uq.AccessToken = res1.AccessToken
+	// uq.OpenId = res2.OpenId
+	// res3, err := uq.Get()
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// log.Println(res3)
+}
 
 // func TestUnion(t *testing.T) {
 // 	conf := UnionKeyConfig{}
