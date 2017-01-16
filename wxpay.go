@@ -541,6 +541,7 @@ func WXAppGetSessionKey(jscode string) (WXAppGetOpenIdResponse, error) {
 
 type EncryptedInfo struct {
 	OpenId    string `json:"openId"`
+	UnionId   string `json:"unionId"`
 	NickName  string `json:"nickName"`
 	Gender    int    `json:"gender"`
 	Language  string `json:"language"`
