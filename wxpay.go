@@ -288,9 +288,11 @@ func (this WXManagerUserTagRequest) post(token string, del bool) error {
 }
 
 type WXMenuButton struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
-	URL  string `json:"url"`
+	Type        string `json:"type"`
+	Name        string `json:"name"`
+	URL         string `json:"url"`
+	XiapAppid   string `json:"appid"`
+	XiaoAppPath string `json:"pagepath"`
 }
 
 type WXCreateMenuRequest struct {
