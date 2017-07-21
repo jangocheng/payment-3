@@ -1070,32 +1070,53 @@ func (this WXPayQueryOrder) Post() (WXPayQueryOrderResponse, error) {
 //支付结果通用通知
 //微信服务器将会根据统一下单的NotifyURL POST以下数据到商机服务器处理
 type WXPayResultNotifyArgs struct {
-	xweb.XMLArgs  `xml:"-"`
-	XMLName       struct{} `xml:"xml"` //root node name
-	AppId         string   `xml:"appid" sign:"true"`
-	Attach        string   `xml:"attach" sign:"true"`
-	BankType      string   `xml:"bank_type" sign:"true"`
-	CashFee       string   `xml:"cash_fee" sign:"true"`
-	CashFeeType   string   `xml:"cash_fee_type" sign:"true"`
-	CouponCount   string   `xml:"coupon_count" sign:"true"`
-	CouponFee     string   `xml:"coupon_fee" sign:"true"`
-	DeviceInfo    string   `xml:"device_info" sign:"true"`
-	ErrCode       string   `xml:"err_code" sign:"true"`
-	ErrCodeDes    string   `xml:"err_code_des" sign:"true"`
-	FeeType       string   `xml:"fee_type" sign:"true"`
-	IsSubScribe   string   `xml:"is_subscribe" sign:"true"` //Y or N
-	MchId         string   `xml:"mch_id" sign:"true"`
-	NonceStr      string   `xml:"nonce_str" sign:"true"`
-	OpenId        string   `xml:"openid" sign:"true"`
-	OutTradeNo    string   `xml:"out_trade_no" sign:"true"`
-	ResultCode    string   `xml:"result_code" sign:"true"` //SUCCESS or FAIL
-	ReturnCode    string   `xml:"return_code" sign:"true"` //SUCCESS or FAIL
-	ReturnMsg     string   `xml:"return_msg" sign:"true"`  //返回信息，如非空，为错误原因
-	Sign          string   `xml:"sign" sign:"false"`       //sign=false表示不参与签名
-	TimeEnd       string   `xml:"time_end" sign:"true"`
-	TotalFee      string   `xml:"total_fee" sign:"true"`
-	TradeType     string   `xml:"trade_type" sign:"true"` //JSAPI、NATIVE、APP
-	TransactionId string   `xml:"transaction_id" sign:"true"`
+	xweb.XMLArgs `xml:"-"`
+	XMLName      struct{} `xml:"xml"` //root node name
+	AppId        string   `xml:"appid" sign:"true"`
+	Attach       string   `xml:"attach" sign:"true"`
+	BankType     string   `xml:"bank_type" sign:"true"`
+	CashFee      string   `xml:"cash_fee" sign:"true"`
+	CashFeeType  string   `xml:"cash_fee_type" sign:"true"`
+	CouponCount  string   `xml:"coupon_count" sign:"true"`
+	CouponFee    string   `xml:"coupon_fee" sign:"true"`
+
+	CouponType0 string `xml:"coupon_type_0" sign:"true"`
+	CouponId0   string `xml:"coupon_id_0" sign:"true"`
+	CouponFee0  string `xml:"coupon_fee_0" sign:"true"`
+
+	CouponType1 string `xml:"coupon_type_1" sign:"true"`
+	CouponId1   string `xml:"coupon_id_1" sign:"true"`
+	CouponFee1  string `xml:"coupon_fee_1" sign:"true"`
+
+	CouponType2 string `xml:"coupon_type_2" sign:"true"`
+	CouponId2   string `xml:"coupon_id_2" sign:"true"`
+	CouponFee2  string `xml:"coupon_fee_2" sign:"true"`
+
+	CouponType3 string `xml:"coupon_type_3" sign:"true"`
+	CouponId3   string `xml:"coupon_id_3" sign:"true"`
+	CouponFee3  string `xml:"coupon_fee_3" sign:"true"`
+
+	CouponType4 string `xml:"coupon_type_4" sign:"true"`
+	CouponId4   string `xml:"coupon_id_4" sign:"true"`
+	CouponFee4  string `xml:"coupon_fee_4" sign:"true"`
+
+	DeviceInfo    string `xml:"device_info" sign:"true"`
+	ErrCode       string `xml:"err_code" sign:"true"`
+	ErrCodeDes    string `xml:"err_code_des" sign:"true"`
+	FeeType       string `xml:"fee_type" sign:"true"`
+	IsSubScribe   string `xml:"is_subscribe" sign:"true"` //Y or N
+	MchId         string `xml:"mch_id" sign:"true"`
+	NonceStr      string `xml:"nonce_str" sign:"true"`
+	OpenId        string `xml:"openid" sign:"true"`
+	OutTradeNo    string `xml:"out_trade_no" sign:"true"`
+	ResultCode    string `xml:"result_code" sign:"true"` //SUCCESS or FAIL
+	ReturnCode    string `xml:"return_code" sign:"true"` //SUCCESS or FAIL
+	ReturnMsg     string `xml:"return_msg" sign:"true"`  //返回信息，如非空，为错误原因
+	Sign          string `xml:"sign" sign:"false"`       //sign=false表示不参与签名
+	TimeEnd       string `xml:"time_end" sign:"true"`
+	TotalFee      string `xml:"total_fee" sign:"true"`
+	TradeType     string `xml:"trade_type" sign:"true"` //JSAPI、NATIVE、APP
+	TransactionId string `xml:"transaction_id" sign:"true"`
 }
 
 func (this WXPayResultNotifyArgs) String() string {
