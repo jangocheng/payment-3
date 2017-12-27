@@ -969,6 +969,33 @@ func AuthGet(token, openid string) WXError {
 	return ret
 }
 
+/*
+
+<return_code><![CDATA[SUCCESS]]></return_code>
+<return_msg><![CDATA[OK]]></return_msg>
+<appid><![CDATA[wx51af527d53ba9bf6]]></appid>
+<mch_id><![CDATA[1325392101]]></mch_id>
+<nonce_str><![CDATA[nVPGKVf3RBDNzVLH]]></nonce_str>
+<sign><![CDATA[4CDC244B56B534436A17A9CDA60C00EA]]></sign>
+<result_code><![CDATA[SUCCESS]]></result_code>
+<openid><![CDATA[oGb4DwSA7iRnHC2T0-AcH7Puslns]]></openid>
+<is_subscribe><![CDATA[N]]></is_subscribe>
+<trade_type><![CDATA[APP]]></trade_type>
+<bank_type><![CDATA[SPDB_DEBIT]]></bank_type>
+<total_fee>14400</total_fee>
+<coupon_fee>500</coupon_fee>
+<fee_type><![CDATA[CNY]]></fee_type>
+<transaction_id><![CDATA[4200000002201712272500763633]]></transaction_id>
+<out_trade_no><![CDATA[1201712271734013776]]></out_trade_no>
+<attach><![CDATA[]]></attach>
+<time_end><![CDATA[20171227173508]]></time_end>
+<trade_state><![CDATA[SUCCESS]]></trade_state>
+<coupon_id_0><![CDATA[2542924058]]></coupon_id_0>
+<coupon_fee_0>500</coupon_fee_0>
+<coupon_count>1</coupon_count>
+<cash_fee>13900</cash_fee>
+*/
+
 type WXPayQueryOrderResponse struct {
 	XMLName        struct{} `xml:"xml"`
 	AppId          string   `xml:"appid" sign:"true"`
@@ -989,10 +1016,14 @@ type WXPayQueryOrderResponse struct {
 	Sign           string   `xml:"sign" sign:"false"`
 	TimeEnd        string   `xml:"time_end" sign:"true"`
 	TotalFee       string   `xml:"total_fee" sign:"true"`
+	CouponFee      string   `xml:"coupon_fee" sign:"true"`
 	TradeState     string   `xml:"trade_state" sign:"true"`
 	TradeStateDesc string   `xml:"trade_state_desc" sign:"true"`
 	TradeType      string   `xml:"trade_type" sign:"true"`
 	TransactionId  string   `xml:"transaction_id" sign:"true"`
+	CouponCount    string   `xml:"coupon_count" sign:"true"`
+	CouponId0      string   `xml:"coupon_id_0" sign:"true"`
+	CouponFee0     string   `xml:"coupon_fee_0" sign:"true"`
 }
 
 func (this WXPayQueryOrderResponse) SignValid() bool {
