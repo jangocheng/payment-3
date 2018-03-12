@@ -11,6 +11,7 @@ import (
 	"github.com/cxuhua/xweb"
 	"html/template"
 	"io"
+	"log"
 	"reflect"
 	"strings"
 )
@@ -551,6 +552,7 @@ type EncryptedInfo struct {
 	Province  string `json:"province"`
 	Country   string `json:"country"`
 	AvatarUrl string `json:"avatarUrl"`
+	OpenGId   string `json:"openGid"`
 }
 
 func WXAppDecodeEncryptedData(skey string, siv string, sdata string) (EncryptedInfo, error) {
@@ -571,10 +573,12 @@ func WXAppDecodeEncryptedData(skey string, siv string, sdata string) (EncryptedI
 	if err != nil {
 		return info, err
 	}
+	log.Println("iv=", iv, "key=", key, "data len =", len(data))
 	idata, err := xweb.AesDecryptWithIV(aes, data, iv)
 	if err != nil {
 		return info, err
 	}
+	log.Println(string(idata))
 	if err := json.Unmarshal(idata, &info); err != nil {
 		return info, err
 	}
