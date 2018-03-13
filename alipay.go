@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -76,15 +77,15 @@ func APParseSignFields(src interface{}) xweb.HTTPValues {
 	v := reflect.ValueOf(src)
 	for i := 0; i < t.NumField(); i++ {
 		tf := t.Field(i)
-		if tf.Name == "sign" {
-			continue
-		}
 		tv := v.Field(i)
 		if !tv.IsValid() {
 			continue
 		}
 		sv := fmt.Sprintf("%v", tv.Interface())
 		if sv == "" {
+			continue
+		}
+		if tf.Tag.Get("sign") == "false" {
 			continue
 		}
 		name := ""
@@ -110,16 +111,16 @@ func APParseSignFields(src interface{}) xweb.HTTPValues {
 }
 
 type APCommonRequest struct {
-	AppId      string `json:"app_id"`      //是	32	支付宝分配给开发者的应用ID	2014072300007148
-	Method     string `json:"method"`      //是	128	接口名称	alipay.trade.app.pay
-	Format     string `json:"format"`      //否	40	仅支持JSON	JSON
-	Charset    string `json:"charset"`     //是	10	请求使用的编码格式，如utf-8,gbk,gb2312等	utf-8
-	SignType   string `json:"sign_type"`   //是	10	商户生成签名字符串所使用的签名算法类型，目前支持RSA2和RSA，推荐使用RSA2	RSA2
-	Sign       string `json:"sign"`        //是	256	商户请求参数的签名串，详见签名	详见示例
-	Timestamp  string `json:"timestamp"`   //是	19	发送请求的时间，格式"yyyy-MM-dd HH:mm:ss"	2014-07-24 03:07:50
-	Version    string `json:"version"`     //是	3	调用的接口版本，固定为：1.0	1.0
-	NotifyURL  string `json:"notify_url"`  //是	256	支付宝服务器主动通知商户服务器里指定的页面http/https路径。建议商户使用https	https://api.xx.com/receive_notify.htm
-	BizContent string `json:"biz_content"` //是	-	业务请求参数的集合，最大长度不限，除公共参数外所有请求参数都必须放在这个参数中传递，具体参照各产品快速接入文档
+	AppId      string `json:"app_id"`            //是	32	支付宝分配给开发者的应用ID	2014072300007148
+	Method     string `json:"method"`            //是	128	接口名称	alipay.trade.app.pay
+	Format     string `json:"format"`            //否	40	仅支持JSON	JSON
+	Charset    string `json:"charset"`           //是	10	请求使用的编码格式，如utf-8,gbk,gb2312等	utf-8
+	SignType   string `json:"sign_type"`         //是	10	商户生成签名字符串所使用的签名算法类型，目前支持RSA2和RSA，推荐使用RSA2	RSA2
+	Sign       string `json:"sign" sign:"false"` //是	256	商户请求参数的签名串，详见签名	详见示例
+	Timestamp  string `json:"timestamp"`         //是	19	发送请求的时间，格式"yyyy-MM-dd HH:mm:ss"	2014-07-24 03:07:50
+	Version    string `json:"version"`           //是	3	调用的接口版本，固定为：1.0	1.0
+	NotifyURL  string `json:"notify_url"`        //是	256	支付宝服务器主动通知商户服务器里指定的页面http/https路径。建议商户使用https	https://api.xx.com/receive_notify.htm
+	BizContent string `json:"biz_content"`       //是	-	业务请求参数的集合，最大长度不限，除公共参数外所有请求参数都必须放在这个参数中传递，具体参照各产品快速接入文档
 }
 
 func NewApCommonRequest(m string) APCommonRequest {
@@ -228,29 +229,60 @@ const (
 )
 
 //支付宝回调参数结构
+/*
+{
+	"app_id": ["2018012202022468"],
+	"auth_app_id": ["2018012202022468"],
+	"body": ["礼盒订单"],
+	"buyer_id": ["2088702869339810"],
+	"buyer_logon_id": ["315***@qq.com"],
+	"buyer_pay_amount": ["0.01"],
+	"charset": ["utf-8"],
+	"fund_bill_list": ["[{\"amount\":\"0.01\",\"fundChannel\":\"ALIPAYACCOUNT\"}]"],
+	"gmt_create": ["2018-03-13 13:55:52"],
+	"gmt_payment": ["2018-03-13 13:55:53"],
+	"invoice_amount": ["0.01"],
+	"notify_id": ["7e6ec782c2c96187a08d8b583b4f17em95"],
+	"notify_time": ["2018-03-13 13:55:53"],
+	"notify_type": ["trade_status_sync"],
+	"out_trade_no": ["5aa6320fc0b6fa10282306b2"],
+	"point_amount": ["0.00"],
+	"receipt_amount": ["0.01"],
+	"seller_email": ["2885495633@qq.com"],
+	"seller_id": ["2088921762100192"],
+	"sign": ["HY106+s14EMDtvsdES8M6rcbpgRek6BWxfoP6b2E+DRRVld/Qv1Cq46NUeTG/Oiu9QspZga1IZfFMhU3wK1Z/sSKLW2nhdZbd2b1A1DLYz57DV7ezJJLGEkQgt6CWiwzADX0ccU6fH3Au5bEWAJ4JF+qlgVUg/4gtm1lO0Em+1lrFqf1dryLsdxXYXGJy0qQC9LZOcif69TCH9LtZAydYW4Qa656HNP06OlWTn8vSKNKdkmDIlixfv1g1PAtcfphG5Gjrg5ByyGWnGu/UIZCxGxkZPJID0+efCLsRjm9lkmbEmuhWE1YlVYejYEpToM77LOCaNKE7wYZ50y1CaOBrg=="],
+	"sign_type": ["RSA2"],
+	"subject": ["礼盒订单"],
+	"total_amount": ["0.01"],
+	"trade_no": ["2018031321001004810502093299"],
+	"trade_status": ["TRADE_SUCCESS"],
+	"version": ["1.0"]
+}
+*/
 type APNotifyMessage struct {
 	NotifyTime        string `form:"notify_time"`
 	NotifyType        string `form:"notify_type"`
 	NotifyId          string `form:"notify_id"`
 	AppId             string `form:"app_id"`
+	AuthAppId         string `form:"auth_app_id"`
 	Charset           string `form:"charset"`
 	Version           string `form:"version"`
-	SignType          string `form:"sign_type"`
-	Sign              string `form:"sign"`
+	SignType          string `form:"sign_type" sign:"false"`
+	Sign              string `form:"sign" sign:"false"`
 	TradeNo           string `form:"trade_no"`
 	OutTradeNo        string `form:"out_trade_no"`
 	OutBizNo          string `form:"out_biz_no"`
 	BuyerId           string `form:"buyer_id"`
 	BuyerLogonId      string `form:"buyer_logon_id"`
 	SellerId          string `form:"seller_id"`
-	seller_email      string `form:"seller_email"`
+	SellerEmail       string `form:"seller_email"`
 	TradeStatus       string `form:"trade_status"`
 	TotalAmount       string `form:"total_amount"`
 	ReceiptAmount     string `form:"receipt_amount"`
 	InvoiceAmount     string `form:"invoice_amount"`
 	BuyerPayAmount    string `form:"buyer_pay_amount"`
 	PointAmount       string `form:"point_amount"`
-	refund_fee        string `form:"refund_fee"`
+	RefundFee         string `form:"refund_fee"`
 	Subject           string `form:"subject"`
 	Body              string `form:"body"`
 	GMTCreate         string `form:"gmt_create"`
@@ -261,9 +293,13 @@ type APNotifyMessage struct {
 	PassbackParams    string `form:"passback_params"`
 	VoucherDetailList string `form:"voucher_detail_list"`
 }
+
 //支付是否成功
 func (this APNotifyMessage) IsSuccess() bool {
-	if this.TradeStatus != TRADE_SUCCESS{
+	if this.AppId != AP_PAY_CONFIG.APP_ID {
+		return false
+	}
+	if this.TradeStatus != TRADE_SUCCESS && this.TradeStatus != TRADE_FINISHED {
 		return false
 	}
 	return this.IsValid()
@@ -274,6 +310,7 @@ func (this APNotifyMessage) IsValid() bool {
 	v := APParseSignFields(this)
 	s := v.RawEncode()
 	if err := APRSAVerify(s, this.Sign); err != nil {
+		log.Println(err)
 		return false
 	}
 	return true
