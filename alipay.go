@@ -10,23 +10,21 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/cxuhua/xweb"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
+	"time"
+
+	"github.com/cxuhua/xweb"
 )
 
 //alipay
 type APKeyConfig struct {
-	PARTNER_ID          string //商户id
-	SELLER_EMAIL        string //商户支付email
+	APP_ID              string //appid
 	SIGN_TYPE           string //签名类型 RSA
 	ALIPAY_KEY          string //阿里支付密钥
 	PARTNET_PRIVATE_KEY string //商户私钥
 	ALIPAY_PUBLIC_KEY   string //阿里支付公钥
+	AP_PAY_NOTICE_URL   string //通知
 }
 
 var (
@@ -59,19 +57,13 @@ func InitAPKey(conf APKeyConfig) {
 	}
 }
 
-func APMD5Sign(v interface{}) string {
-	http := APParseSignFields(v)
-	str := http.RawEncode() + AP_PAY_CONFIG.ALIPAY_KEY
-	return xweb.MD5String(str)
-}
-
-func APSHA1Sign(v interface{}) string {
+func APSHA256Sign(v interface{}) string {
 	http := APParseSignFields(v)
 	str := http.RawEncode()
-	h := crypto.SHA1.New()
+	h := crypto.SHA256.New()
 	h.Write([]byte(str))
 	hashed := h.Sum(nil)
-	if s, err := rsa.SignPKCS1v15(rand.Reader, PARTNET_PRIVATE_KEY, crypto.SHA1, hashed); err != nil {
+	if s, err := rsa.SignPKCS1v15(rand.Reader, PARTNET_PRIVATE_KEY, crypto.SHA256, hashed); err != nil {
 		panic(err)
 	} else {
 		return base64.StdEncoding.EncodeToString(s)
@@ -84,7 +76,7 @@ func APParseSignFields(src interface{}) xweb.HTTPValues {
 	v := reflect.ValueOf(src)
 	for i := 0; i < t.NumField(); i++ {
 		tf := t.Field(i)
-		if tf.Tag.Get("sign") != "true" {
+		if tf.Name == "sign" {
 			continue
 		}
 		tv := v.Field(i)
@@ -117,299 +109,42 @@ func APParseSignFields(src interface{}) xweb.HTTPValues {
 	return values
 }
 
-//校验来自阿里的数据
-func APRSAVerify(src string, sign string) error {
-	h := crypto.SHA1.New()
-	h.Write([]byte(src))
-	hashed := h.Sum(nil)
-	data, err := base64.StdEncoding.DecodeString(sign)
-	if err != nil {
-		return err
-	}
-	return rsa.VerifyPKCS1v15(ALIPAY_PUBLIC_KEY, crypto.SHA1, hashed, data)
+type APCommonRequest struct {
+	AppId      string `json:"app_id"`      //是	32	支付宝分配给开发者的应用ID	2014072300007148
+	Method     string `json:"method"`      //是	128	接口名称	alipay.trade.app.pay
+	Format     string `json:"format"`      //否	40	仅支持JSON	JSON
+	Charset    string `json:"charset"`     //是	10	请求使用的编码格式，如utf-8,gbk,gb2312等	utf-8
+	SignType   string `json:"sign_type"`   //是	10	商户生成签名字符串所使用的签名算法类型，目前支持RSA2和RSA，推荐使用RSA2	RSA2
+	Sign       string `json:"sign"`        //是	256	商户请求参数的签名串，详见签名	详见示例
+	Timestamp  string `json:"timestamp"`   //是	19	发送请求的时间，格式"yyyy-MM-dd HH:mm:ss"	2014-07-24 03:07:50
+	Version    string `json:"version"`     //是	3	调用的接口版本，固定为：1.0	1.0
+	NotifyURL  string `json:"notify_url"`  //是	256	支付宝服务器主动通知商户服务器里指定的页面http/https路径。建议商户使用https	https://api.xx.com/receive_notify.htm
+	BizContent string `json:"biz_content"` //是	-	业务请求参数的集合，最大长度不限，除公共参数外所有请求参数都必须放在这个参数中传递，具体参照各产品快速接入文档
 }
 
-const (
-	//如果异步订单处理成功返回
-	DO_SUCCESS = "success"
-)
-
-//TradeStatus
-const (
-	WAIT_BUYER_PAY  = "WAIT_BUYER_PAY"
-	TRADE_CLOSED    = "TRADE_CLOSED"
-	TRADE_SUCCESS   = "TRADE_SUCCESS"
-	TRADE_FINISHED  = "TRADE_FINISHED"
-	REFUND_SUCCESS  = "REFUND_SUCCESS"
-	REFUND_CLOSED   = "REFUND_CLOSED"
-	TRADE_NOT_EXIST = "TRADE_NOT_EXIST"
-)
-
-//https://mapi.alipay.com/gateway.do?
-//_input_charset=utf-8&out_trade_no=1201604242253410295&partner=2088121797205248&
-//service=single_trade_query&sign=283e436499a7fbfe5e6bccdf72946ec5&sign_type=md5
-type APPayQueryOrder struct {
-	Service      string `json:"service" sign:"true"`
-	Partner      string `json:"partner" sign:"true"`
-	InputCharset string `json:"_input_charset" sign:"true"`
-	OutTradeNo   string `json:"out_trade_no" sign:"true"`
+func NewApCommonRequest(m string) APCommonRequest {
+	req := APCommonRequest{}
+	req.AppId = AP_PAY_CONFIG.APP_ID
+	req.Method = m
+	req.Format = "JSON"
+	req.Charset = "utf-8"
+	req.SignType = AP_PAY_CONFIG.SIGN_TYPE
+	req.Timestamp = time.Now().Format("2006-01-02 15:04:05")
+	req.Version = "1.0"
+	return req
 }
 
-type APPayQueryOrderResponse struct {
-	XMLName      struct{} `xml:"alipay" sign:"false"`
-	IsSuccess    string   `xml:"is_success" sign:"false"`
-	Body         string   `xml:"response>trade>body" sign:"true"`
-	BuyerEmail   string   `xml:"response>trade>buyer_email" sign:"true"`
-	BuyerId      string   `xml:"response>trade>buyer_id" sign:"true"`
-	Discount     string   `xml:"response>trade>discount" sign:"true"`
-	Locked       string   `xml:"response>trade>flag_trade_locked" sign:"true"`
-	GMTCreate    string   `xml:"response>trade>gmt_create" sign:"true"`
-	GMTLast      string   `xml:"response>trade>gmt_last_modified_time" sign:"true"`
-	GMTPayment   string   `xml:"response>trade>gmt_payment" sign:"true"`
-	IsTotalFee   string   `xml:"response>trade>is_total_fee_adjust" sign:"true"`
-	OperatorRole string   `xml:"response>trade>operator_role" sign:"true"`
-	OutTradeNo   string   `xml:"response>trade>out_trade_no" sign:"true"`
-	PaymentType  string   `xml:"response>trade>payment_type" sign:"true"`
-	Price        string   `xml:"response>trade>price" sign:"true"`
-	Quantity     string   `xml:"response>trade>quantity" sign:"true"`
-	SellerEmail  string   `xml:"response>trade>seller_email" sign:"true"`
-	SellerId     string   `xml:"response>trade>seller_id" sign:"true"`
-	Subject      string   `xml:"response>trade>subject" sign:"true"`
-	Timeout      string   `xml:"response>trade>time_out" sign:"true"`
-	TimeoutType  string   `xml:"response>trade>time_out_type" sign:"true"`
-	ToBuyerFee   string   `xml:"response>trade>to_buyer_fee" sign:"true"`
-	ToSellerFee  string   `xml:"response>trade>to_seller_fee" sign:"true"`
-	TotalFee     string   `xml:"response>trade>total_fee" sign:"true"`
-	TradeNo      string   `xml:"response>trade>trade_no" sign:"true"`
-	TradeStatus  string   `xml:"response>trade>trade_status" sign:"true"`
-	UseCoupon    string   `xml:"response>trade>use_coupon" sign:"true"`
-	Sign         string   `xml:"sign" sign:"false"`
-	SignType     string   `xml:"sign_type" sign:"false"`
-	Error        string   `xml:"error" sign:"false"`
-}
-
-func (this APPayQueryOrderResponse) IsPaySuccess() bool {
-	if this.IsSuccess != "T" {
-		return false
-	}
-	return this.TradeStatus == TRADE_SUCCESS
-}
-
-/*
-<alipay>
-	<is_success>T</is_success>
-	<request>
-		<param name="_input_charset">utf-8</param>
-		<param name="service">single_trade_query</param>
-		<param name="partner">2088121797205248</param>
-		<param name="out_trade_no">1201604242253410295</param>
-	</request>
-	<response>
-		<trade>
-			<body>订单支付</body>
-			<buyer_email>cxuhua@gmail.com</buyer_email>
-			<buyer_id>2088002003565555</buyer_id>
-			<discount>0.00</discount>
-			<flag_trade_locked>0</flag_trade_locked>
-			<gmt_create>2016-04-24 22:54:05</gmt_create>
-			<gmt_last_modified_time>2016-04-24 22:54:06</gmt_last_modified_time>
-			<gmt_payment>2016-04-24 22:54:06</gmt_payment>
-			<is_total_fee_adjust>F</is_total_fee_adjust>
-			<operator_role>B</operator_role>
-			<out_trade_no>1201604242253410295</out_trade_no>
-			<payment_type>1</payment_type>
-			<price>2.12</price>
-			<quantity>1</quantity>
-			<seller_email>57730141@qq.com</seller_email>
-			<seller_id>2088121797205248</seller_id>
-			<subject>订单支付</subject>
-			<time_out>2016-07-24 22:54:06</time_out>
-			<time_out_type>finishFPAction</time_out_type>
-			<to_buyer_fee>0.00</to_buyer_fee>
-			<to_seller_fee>2.12</to_seller_fee>
-			<total_fee>2.12</total_fee>
-			<trade_no>2016042421001004550217245009</trade_no>
-			<trade_status>TRADE_SUCCESS</trade_status>
-			<use_coupon>F</use_coupon>
-		</trade>
-	</response>
-	<sign>ecc83e462668b8a7bc695e24249e2db6</sign>
-	<sign_type>MD5</sign_type>
-</alipay>
-*/
-func (this APPayQueryOrder) Get() (APPayQueryOrderResponse, error) {
-	ret := APPayQueryOrderResponse{}
-	if this.OutTradeNo == "" {
-		panic(errors.New("OutTradeNo miss"))
-	}
-	this.Service = "single_trade_query"
-	this.Partner = AP_PAY_CONFIG.PARTNER_ID
-	this.InputCharset = "utf-8"
-	c := xweb.NewHTTPClient("https://mapi.alipay.com")
-	v := xweb.NewHTTPValues()
-	v.Set("service", this.Service)
-	v.Set("partner", this.Partner)
-	v.Set("_input_charset", this.InputCharset)
-	v.Set("out_trade_no", this.OutTradeNo)
-	v.Set("sign_type", "MD5")
-	v.Set("sign", APMD5Sign(this))
-	res, err := c.Get("/gateway.do", v)
-	if err != nil {
-		return ret, err
-	}
-	if err := res.ToXml(&ret); err != nil {
-		return ret, err
-	}
-	if ret.IsSuccess != "T" {
-		return ret, nil
-	}
-	if ret.Sign != APMD5Sign(ret) {
-		return ret, errors.New("sign data error")
-	}
-	return ret, nil
-}
-
-//支付宝服务器异步通知参数说明
-type APPayResultNotifyArgs struct {
-	NotifyTime   string `form:"notify_time" sign:"true"`
-	NotifyType   string `form:"notify_type" sign:"true"`
-	NotifyId     string `form:"notify_id" sign:"true"`
-	SignType     string `form:"sign_type" sign:"false"` //RSA
-	Sign         string `form:"sign" sign:"false"`
-	OutTradeNO   string `form:"out_trade_no" sign:"true"`
-	Subject      string `form:"subject" sign:"true"`
-	PaymentType  string `form:"payment_type" sign:"true"` //1
-	TradeNO      string `form:"trade_no" sign:"true"`
-	TradeStatus  string `form:"trade_status" sign:"true"`
-	SellerId     string `form:"seller_id" sign:"true"`
-	SellerEmail  string `form:"seller_email" sign:"true"`
-	BuyerId      string `form:"buyer_id" sign:"true"`
-	BuyerEmail   string `form:"buyer_email" sign:"true"`
-	TotalFee     string `form:"total_fee" sign:"true"`
-	Quantity     string `form:"quantity" sign:"true"`
-	Price        string `form:"price" sign:"true"`
-	Body         string `form:"body" sign:"true"`
-	GMTCreate    string `form:"gmt_create" sign:"true"`
-	GMTPayment   string `form:"gmt_payment" sign:"true"`
-	FeeAdjust    string `form:"is_total_fee_adjust" sign:"true"`
-	UseCoupon    string `form:"use_coupon" sign:"true"`
-	Discount     string `form:"discount" sign:"true"`
-	RefundStatus string `form:"refund_status" sign:"true"`
-	GMTRefund    string `form:"gmt_refund" sign:"true"`
-	GMTClose     string `form:"gmt_close" sign:"true"`
-}
-
-func (this APPayResultNotifyArgs) GetTotalFee() float32 {
-	v, err := strconv.ParseFloat(this.TotalFee, 64)
-	if err != nil {
-		panic(err)
-	}
-	return float32(v)
-}
-
-func (this APPayResultNotifyArgs) IsError() error {
-	if !this.IsValid() {
-		return errors.New("data sign error")
-	}
-	if !this.IsFromAlipay() {
-		return errors.New("data not form alipay")
-	}
-	if !this.IsSuccess() {
-		return errors.New("pay status not success")
-	}
-	return nil
-}
-
-func (this APPayResultNotifyArgs) IsSuccess() bool {
-	return this.TradeStatus == TRADE_SUCCESS || this.TradeStatus == TRADE_FINISHED
-}
-
-//是否来自支付宝
-func (this APPayResultNotifyArgs) IsFromAlipay() bool {
-	q := xweb.NewHTTPValues()
-	q.Set("service", "notify_verify")
-	q.Set("partner", AP_PAY_CONFIG.PARTNER_ID)
-	q.Set("notify_id", this.NotifyId)
-	http := xweb.NewHTTPClient("https://mapi.alipay.com")
-	res, err := http.Get("/gateway.do", q)
-	if err != nil {
-		return false
-	}
-	d, err := res.ToBytes()
-	if err != nil {
-		return false
-	}
-	return string(d) == "true"
-}
-
-//签名校验
-func (this APPayResultNotifyArgs) IsValid() bool {
-	v := APParseSignFields(this)
-	s := v.RawEncode()
-	if err := APRSAVerify(s, this.Sign); err != nil {
-		return false
-	}
-	return true
-}
-
-func (this APPayResultNotifyArgs) String() string {
-	d, err := json.Marshal(this)
-	if err != nil {
-		return err.Error()
-	}
-	return string(d)
-}
-
-func NewAPPayResultNotifyArgs(req *http.Request) (APPayResultNotifyArgs, error) {
-	args := APPayResultNotifyArgs{}
-	data, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return args, err
-	}
-	form, err := url.ParseQuery(string(data))
-	if err != nil {
-		return args, err
-	}
-	xweb.MapFormBindType(&args, form, nil, nil, nil)
-	if err := args.IsError(); err != nil {
-		return args, err
-	}
-	return args, nil
-}
-
-//阿里支付请求参数
-type APPayReqForApp struct {
-	Service      string `json:"service,omitempty" sign:"true"`
-	Partner      string `json:"partner,omitempty" sign:"true"`
-	InputCharset string `json:"_input_charset,omitempty" sign:"true"`
-	SignType     string `json:"sign_type,omitempty" sign:"false"`
-	Sign         string `json:"sign,omitempty" sign:"false"`
-	NotifyURL    string `json:"notify_url,omitempty" sign:"true"`
-	OutTradeNO   string `json:"out_trade_no,omitempty" sign:"true"`
-	Subject      string `json:"subject,omitempty" sign:"true"`
-	PaymentType  string `json:"payment_type,omitempty" sign:"true"`
-	SellerId     string `json:"seller_id,omitempty" sign:"true"`
-	TotalFee     string `json:"total_fee,omitempty" sign:"true"`
-	Body         string `json:"body,omitempty" sign:"true"`
-}
-
-func (this APPayReqForApp) String() string {
+//获取app支付字符串
+func (this APCommonRequest) GetAppPayString() string {
 	if this.NotifyURL == "" {
 		panic(errors.New("NotifyURL miss"))
 	}
-	if this.OutTradeNO == "" {
-		panic(errors.New("OutTradeNO miss"))
+	if this.BizContent == "" {
+		panic(errors.New("BizContent miss"))
 	}
-	if this.Subject == "" {
-		panic(errors.New("Subject miss"))
-	}
-	if this.TotalFee == "" {
-		panic(errors.New("TotalFee miss"))
-	}
-	if this.Body == "" {
-		panic(errors.New("Body miss"))
-	}
-	this.Sign = url.QueryEscape(APSHA1Sign(this))
+	this.Sign = APSHA256Sign(this)
+	rep := strings.NewReplacer("+", "%20", "*", "%2A", "%7E", "~")
+
 	values := xweb.NewHTTPValues()
 	t := reflect.TypeOf(this)
 	v := reflect.ValueOf(this)
@@ -419,26 +154,127 @@ func (this APPayReqForApp) String() string {
 		if !tv.IsValid() {
 			continue
 		}
-		jt := strings.Split(tf.Tag.Get("json"), ",")
-		if len(jt) == 0 || jt[0] == "" {
-			continue
-		}
-		sv := fmt.Sprintf(`%v`, tv.Interface())
+		sv := fmt.Sprintf("%v", tv.Interface())
 		if sv == "" {
 			continue
 		}
-		values.Add(jt[0], sv)
+		name := tf.Tag.Get("json")
+		if name == "" {
+			continue
+		}
+		values.Add(name, sv)
 	}
-	return values.RawEncode()
+	return rep.Replace(values.Encode())
+}
+
+//校验来自阿里的数据
+func APRSAVerify(src string, sign string) error {
+	h := crypto.SHA256.New()
+	h.Write([]byte(src))
+	hashed := h.Sum(nil)
+	data, err := base64.StdEncoding.DecodeString(sign)
+	if err != nil {
+		return err
+	}
+	return rsa.VerifyPKCS1v15(ALIPAY_PUBLIC_KEY, crypto.SHA256, hashed, data)
+}
+
+//阿里支付请求参数
+type APPayReqForApp struct {
+	Body        string `json:"body,omitempty"`
+	Subject     string `json:"subject,omitempty"`
+	OutTradeNO  string `json:"out_trade_no,omitempty"`
+	ProductCode string `json:"product_code"`
+	TotalAmount string `json:"total_amount,omitempty"`
+}
+
+func (this APPayReqForApp) String() string {
+	if this.OutTradeNO == "" {
+		panic(errors.New("OutTradeNO miss"))
+	}
+	if this.Subject == "" {
+		panic(errors.New("Subject miss"))
+	}
+	if this.TotalAmount == "" {
+		panic(errors.New("TotalFee miss"))
+	}
+	if this.Body == "" {
+		panic(errors.New("Body miss"))
+	}
+	biz, err := json.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	//配置公共参数
+	apc := NewApCommonRequest("alipay.trade.app.pay")
+	apc.NotifyURL = AP_PAY_CONFIG.AP_PAY_NOTICE_URL
+	apc.BizContent = string(biz)
+	return apc.GetAppPayString()
 }
 
 func NewAPPayReqForApp() APPayReqForApp {
 	d := APPayReqForApp{}
-	d.Service = "mobile.securitypay.pay"
-	d.Partner = AP_PAY_CONFIG.PARTNER_ID
-	d.InputCharset = "utf-8"
-	d.SignType = "RSA"
-	d.PaymentType = "1"
-	d.SellerId = AP_PAY_CONFIG.SELLER_EMAIL
+	d.ProductCode = "QUICK_MSECURITY_PAY"
 	return d
+}
+
+//交易状态说明
+const (
+	NOTICE_SUCCESS = "success"        //处理成功返回给支付宝
+	WAIT_BUYER_PAY = "WAIT_BUYER_PAY" //	交易创建，等待买家付款
+	TRADE_CLOSED   = "TRADE_CLOSED"   //	未付款交易超时关闭，或支付完成后全额退款
+	TRADE_SUCCESS  = "TRADE_SUCCESS"  //	交易支付成功
+	TRADE_FINISHED = "TRADE_FINISHED" //	交易结束，不可退款
+)
+
+//支付宝回调参数结构
+type APNotifyMessage struct {
+	NotifyTime        string `form:"notify_time"`
+	NotifyType        string `form:"notify_type"`
+	NotifyId          string `form:"notify_id"`
+	AppId             string `form:"app_id"`
+	Charset           string `form:"charset"`
+	Version           string `form:"version"`
+	SignType          string `form:"sign_type"`
+	Sign              string `form:"sign"`
+	TradeNo           string `form:"trade_no"`
+	OutTradeNo        string `form:"out_trade_no"`
+	OutBizNo          string `form:"out_biz_no"`
+	BuyerId           string `form:"buyer_id"`
+	BuyerLogonId      string `form:"buyer_logon_id"`
+	SellerId          string `form:"seller_id"`
+	seller_email      string `form:"seller_email"`
+	TradeStatus       string `form:"trade_status"`
+	TotalAmount       string `form:"total_amount"`
+	ReceiptAmount     string `form:"receipt_amount"`
+	InvoiceAmount     string `form:"invoice_amount"`
+	BuyerPayAmount    string `form:"buyer_pay_amount"`
+	PointAmount       string `form:"point_amount"`
+	refund_fee        string `form:"refund_fee"`
+	Subject           string `form:"subject"`
+	Body              string `form:"body"`
+	GMTCreate         string `form:"gmt_create"`
+	GMTPayment        string `form:"gmt_payment"`
+	GMTRefund         string `form:"gmt_refund"`
+	GMTClose          string `form:"gmt_close"`
+	FundBillList      string `form:"fund_bill_list"`
+	PassbackParams    string `form:"passback_params"`
+	VoucherDetailList string `form:"voucher_detail_list"`
+}
+//支付是否成功
+func (this APNotifyMessage) IsSuccess() bool {
+	if this.TradeStatus != TRADE_SUCCESS{
+		return false
+	}
+	return this.IsValid()
+}
+
+//签名校验
+func (this APNotifyMessage) IsValid() bool {
+	v := APParseSignFields(this)
+	s := v.RawEncode()
+	if err := APRSAVerify(s, this.Sign); err != nil {
+		return false
+	}
+	return true
 }
