@@ -44,6 +44,7 @@ type WXKeyConfig struct {
 }
 
 var (
+	configs = map[string]*WXKeyConfig{}
 	WX_PAY_CONFIG WXKeyConfig = WXKeyConfig{}
 )
 
@@ -54,9 +55,34 @@ func InitWXKey(conf WXKeyConfig) {
 	}
 }
 
+func InitWXKeyWithID(conf WXKeyConfig,id string) {
+	if id == ""{
+		panic(errors.New("id miss"))
+	}
+	if _, ok := configs[id]; ok {
+		return
+	}
+	if conf.CA_PATH != "" && conf.CRT_PATH != "" && conf.KEY_PATH != "" {
+		conf.TLSConfig = xweb.MustLoadTLSFileConfig(conf.CA_PATH, conf.CRT_PATH, conf.KEY_PATH)
+	}
+	configs[id] = &conf
+}
+func GetConfig(id string) *WXKeyConfig {
+	conf, ok := configs[id]
+	if !ok {
+		panic(errors.New(id+" config miss"))
+	}
+	return conf
+}
 func WXSign(v interface{}) string {
 	http := WXParseSignFields(v)
 	str := http.RawEncode() + "&key=" + WX_PAY_CONFIG.MCH_KEY
+	return strings.ToUpper(xweb.MD5String(str))
+}
+
+func WXSignWithConfig(v interface{},conf *WXKeyConfig) string {
+	http := WXParseSignFields(v)
+	str := http.RawEncode() + "&key=" + conf.MCH_KEY
 	return strings.ToUpper(xweb.MD5String(str))
 }
 
@@ -1162,6 +1188,25 @@ func (this WXPayResultNotifyArgs) String() string {
 	return string(d)
 }
 
+func (this WXPayResultNotifyArgs) IsErrorWithId(id string) error {
+	conf := GetConfig(id)
+	if this.ReturnCode != SUCCESS {
+		return errors.New(this.ReturnMsg)
+	}
+	if this.ResultCode != SUCCESS {
+		return errors.New(fmt.Sprintf("ERROR:%d,%s", this.ErrCode, this.ErrCodeDes))
+	}
+	if !this.SignValidWithConf(conf) {
+		return errors.New("sign valid error")
+	}
+	return nil
+}
+
+func (this WXPayResultNotifyArgs) SignValidWithConf(conf *WXKeyConfig) bool {
+	sign := WXSignWithConfig(this,conf)
+	return sign == this.Sign
+}
+
 //签名校验
 func (this WXPayResultNotifyArgs) SignValid() bool {
 	sign := WXSign(this)
@@ -1373,6 +1418,51 @@ func (this WXUnifiedorderResponse) Error() error {
 		return errors.New("ERROR:" + this.ErrCode + "," + this.ErrCodeDes)
 	}
 	return nil
+}
+
+func (this WXUnifiedorderRequest) PostWithId(id string) (WXUnifiedorderResponse, error) {
+	conf := GetConfig(id)
+	ret := WXUnifiedorderResponse{}
+	if this.TotalFee == "" {
+		panic(errors.New("TotalFee must > 0 "))
+	}
+	this.NonceStr = RandStr()
+	if this.NotifyURL == "" {
+		panic(errors.New("NotifyURL miss"))
+	}
+	this.AppId = conf.APP_ID
+	this.MchId = conf.MCH_ID
+	if this.AppId == "" {
+		panic(errors.New("AppId miss"))
+	}
+	if this.MchId == "" {
+		panic(errors.New("MchId miss"))
+	}
+	if this.NotifyURL == "" {
+		panic(errors.New("NotifyURL miss"))
+	}
+	if this.TradeType == "" {
+		panic(errors.New("TradeType must set"))
+	}
+	if this.TradeType == TRADE_TYPE_JSAPI && this.OpenId == "" {
+		panic(errors.New(TRADE_TYPE_JSAPI + " openid empty"))
+	}
+	if this.TradeType == TRADE_TYPE_NATIVE && this.ProductId == "" {
+		panic(errors.New(TRADE_TYPE_NATIVE + " product_id empty"))
+	}
+	this.Sign = WXSignWithConfig(this,conf)
+	http := xweb.NewHTTPClient(WX_PAY_HOST)
+	res, err := http.Post("/pay/unifiedorder", "application/xml", strings.NewReader(this.ToXML()))
+	if err != nil {
+		return ret, err
+	}
+	if err := res.ToXml(&ret); err != nil {
+		return ret, err
+	}
+	if err := ret.Error(); err != nil {
+		return ret, err
+	}
+	return ret, nil
 }
 
 func (this WXUnifiedorderRequest) Post() (WXUnifiedorderResponse, error) {
