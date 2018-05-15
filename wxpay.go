@@ -536,6 +536,29 @@ type WXAppGetOpenIdResponse struct {
 }
 
 // https://api.weixin.qq.com/sns/jscode2session?appid=APPID&secret=SECRET&js_code=JSCODE&grant_type=authorization_code
+func WXAppGetSessionKeyWithId(jscode string,id string) (WXAppGetOpenIdResponse, error) {
+	conf := GetConfig(id)
+	ret := WXAppGetOpenIdResponse{}
+	q := xweb.NewHTTPValues()
+	q.Set("js_code", jscode)
+	q.Set("grant_type", "authorization_code")
+	q.Set("appid", conf.APP_ID)
+	q.Set("secret", conf.APP_SECRET)
+	c := xweb.NewHTTPClient(WX_API_HOST)
+	res, err := c.Get("/sns/jscode2session", q)
+	if err != nil {
+		return ret, err
+	}
+	if err := res.ToJson(&ret); err != nil {
+		return ret, err
+	}
+	if err := ret.Error(); err != nil {
+		return ret, err
+	}
+	return ret, err
+}
+
+// https://api.weixin.qq.com/sns/jscode2session?appid=APPID&secret=SECRET&js_code=JSCODE&grant_type=authorization_code
 func WXAppGetSessionKey(jscode string) (WXAppGetOpenIdResponse, error) {
 	ret := WXAppGetOpenIdResponse{}
 	q := xweb.NewHTTPValues()
