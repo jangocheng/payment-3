@@ -50,8 +50,8 @@ var (
 
 func InitWXKey(conf WXKeyConfig) {
 	WX_PAY_CONFIG = conf
-	if conf.CA_PATH != "" && conf.CRT_PATH != "" && conf.KEY_PATH != "" {
-		WX_PAY_CONFIG.TLSConfig = xweb.MustLoadTLSFileConfig(conf.CA_PATH, conf.CRT_PATH, conf.KEY_PATH)
+	if conf.CRT_PATH != "" && conf.KEY_PATH != "" {
+		WX_PAY_CONFIG.TLSConfig = xweb.MustLoadTLSFile(conf.CRT_PATH, conf.KEY_PATH)
 	}
 }
 
