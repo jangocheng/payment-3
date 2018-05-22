@@ -8,12 +8,13 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/cxuhua/xweb"
 	"html/template"
 	"io"
 	"log"
 	"reflect"
 	"strings"
+
+	"github.com/cxuhua/xweb"
 )
 
 /**
@@ -49,8 +50,8 @@ var (
 
 func InitWXKey(conf WXKeyConfig) {
 	WX_PAY_CONFIG = conf
-	if conf.CA_PATH != "" && conf.CRT_PATH != "" && conf.KEY_PATH != "" {
-		WX_PAY_CONFIG.TLSConfig = xweb.MustLoadTLSFileConfig(conf.CA_PATH, conf.CRT_PATH, conf.KEY_PATH)
+	if conf.CRT_PATH != "" && conf.KEY_PATH != "" {
+		WX_PAY_CONFIG.TLSConfig = xweb.MustLoadTLSFile(conf.CRT_PATH, conf.KEY_PATH)
 	}
 }
 
@@ -326,6 +327,50 @@ func (this WXCreateMenuRequest) Post(token string) error {
 		return errors.New(ret.ErrMsg)
 	}
 	return nil
+}
+
+//TestSignSSL
+
+type GetSignKeyRequest struct {
+	MchId    string `xml:"mch_id" sign:"true"`
+	NonceStr string `xml:"nonce_str" sign:"true"`
+	Sign     string `xml:"sign" sign:"false"`
+}
+
+func (this GetSignKeyRequest) ToXml() string {
+	data, err := xml.Marshal(this)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+type GetSignKeyResponse struct {
+	ReturnCode     string `xml:"return_code"`
+	ReturnMsg      string `xml:"return_msg"`
+	MchId          string `xml:"mch_id"`
+	SandboxSignkey string `xml:"sandbox_signkey""`
+}
+
+func (this GetSignKeyRequest) Post() (GetSignKeyResponse, error) {
+	ret := GetSignKeyResponse{}
+	this.NonceStr = RandStr()
+	this.MchId = WX_PAY_CONFIG.MCH_ID
+	vs := WXParseSignFields(this)
+	this.Sign = strings.ToUpper(vs.MD5Sign(WX_PAY_CONFIG.MCH_KEY))
+	body := strings.NewReader(this.ToXml())
+	http := xweb.NewHTTPClient("https://apitest.mch.weixin.qq.com", WX_PAY_CONFIG.TLSConfig)
+	res, err := http.Post("/sandboxnew/pay/getsignkey", "application/xml", body)
+	if err != nil {
+		return ret, err
+	}
+	if err := res.ToXml(&ret); err != nil {
+		return ret, err
+	}
+	if ret.ReturnCode != SUCCESS {
+		return ret, errors.New(ret.ReturnMsg)
+	}
+	return ret, nil
 }
 
 //https://api.weixin.qq.com/cgi-bin/menu/delete?access_token
@@ -805,6 +850,15 @@ type WXRefundResponse struct {
 	TransactionId      string   `xml:"transaction_id,omitempty" sign:"true"`
 	CouponRefundFee    string   `xml:"coupon_refund_fee,omitempty" sign:"true"`
 	CouponRefundCount  string   `xml:"coupon_refund_count,omitempty" sign:"true"`
+	CouponType0        string   `xml:"coupon_type_0" sign:"true"`
+	CouponRefundFee0   string   `xml:"coupon_refund_fee_0" sign:"true"`
+	CouponRefundId0    string   `xml:"coupon_refund_id_0" sign:"true"`
+	CouponType1        string   `xml:"coupon_type_1" sign:"true"`
+	CouponRefundFee1   string   `xml:"coupon_refund_fee_1" sign:"true"`
+	CouponRefundId1    string   `xml:"coupon_refund_id_1" sign:"true"`
+	CouponType2        string   `xml:"coupon_type_2" sign:"true"`
+	CouponRefundFee2   string   `xml:"coupon_refund_fee_2" sign:"true"`
+	CouponRefundId2    string   `xml:"coupon_refund_id_2" sign:"true"`
 }
 
 func (this WXRefundResponse) SignValid() bool {
