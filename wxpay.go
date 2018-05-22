@@ -382,7 +382,7 @@ type WXTransfersResponse struct {
 	ErrCodeDes string `xml:"err_code_des"`
 }
 
-func (this WXTransfersRequest) Post() (WXTransfersResponse, error) {
+func (this *WXTransfersRequest) Post() (WXTransfersResponse, error) {
 	ret := WXTransfersResponse{}
 	this.PartnerTradeNo = xweb.GenId()
 	this.NonceStr = RandStr()
